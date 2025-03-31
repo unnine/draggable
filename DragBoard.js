@@ -203,7 +203,7 @@
 }(
   (function DragFactory() {
 
-    function Drag($dragBoard, $element, option) {
+    function Drag($dragBoard, $element, option = {}) {
       this.$dragBoard = $dragBoard;
       this.$dragElements = [$element];
       this.option = option;
