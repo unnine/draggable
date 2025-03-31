@@ -1,0 +1,263 @@
+(function (factory) {
+  if(typeof exports === 'object' && typeof module === 'object') {
+    module.exports = factory;
+  }
+  else if(typeof define === 'function' && define.amd) {
+    define([], factory);
+  }
+  else if(typeof exports === 'object') {
+    exports["DragBoard"] = factory;
+  }
+  else {
+    window['DragBoard'] = factory;
+  }
+}((function DragBoardFactory(Drag) {
+
+    function DragBoard(selector) {
+      this.$board = document.querySelector(selector);
+      this.$dragElements = [];
+
+      this.active = false;
+      this.$activeElement = null;
+
+      this.externalEventListeners = {
+        [this.EVENT.DRAG_START]: null,
+        [this.EVENT.DRAGGING]: null,
+        [this.EVENT.DRAG_END]: null,
+      }
+      this.eventListeners = {};
+      this.bindEventListeners();
+
+      this.returnObject = this.returnObject();
+
+      return this.returnObject;
+    }
+
+    (function DragBoardPrototype() {
+
+      this.EVENT = {
+        DRAG_START: 'dragStart',
+        DRAG_END: 'dragEnd',
+        DRAGGING: 'dragging',
+      };
+
+      this.getDragElementBySelected = function($selectedElement) {
+        for (let $element of this.$dragElements) {
+          if ($element.equals($selectedElement)) {
+            return $element;
+          }
+        }
+        return null;
+      }
+
+      this.dragStart = function(e) {        
+        const dragElement = this.getDragElementBySelected(e.target);
+
+        if (dragElement != null) {
+          this.active = true;
+          this.$activeElement = dragElement;
+          this.$activeElement.moveStart(this.clientX(e), this.clientY(e)); 
+        }
+        this.publishExternalEventListener(this.EVENT.DRAG_START, e);
+      }
+
+      this.dragging = function(e) {
+        if (!this.active) {
+          return;
+        }
+        if (this.$activeElement == null) {
+          return;
+        }
+        e.preventDefault();
+        this.$activeElement.move(this.clientX(e), this.clientY(e));
+        this.publishExternalEventListener(this.EVENT.DRAGGING, e);
+      }
+
+      this.dragEnd = function(e) {
+        this.active = false;
+
+        if (this.$activeElement != null) {
+          this.$activeElement.moveEnd();
+          this.$activeElement = null;
+        }
+        this.publishExternalEventListener(this.EVENT.DRAG_END, e);
+      }
+
+      this.clientX = function(e) {
+        if (this.isTouched(e)) {
+          return e.touches[0].clientX;
+        }
+        return e.clientX;
+      }.bind(this);
+
+      this.clientY = function(e) {
+        if (this.isTouched(e)) {
+          return e.touches[0].clientY;
+        }
+        return e.clientY;
+      }.bind(this);
+
+      this.isTouched = function(e) {
+        return e.type.startsWith('touch');
+      }
+
+      this.draggable = function(selector) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length <= 0) {
+          return;
+        }
+        for (let element of elements) {
+          this.$dragElements.push(new Drag(element));
+        }
+        return this.returnObject;
+      }
+      
+      this.bindEventListeners = function() {
+        this.eventListeners = {
+          dragStart: this.dragStart.bind(this),
+          dragging: this.dragging.bind(this),
+          dragEnd: this.dragEnd.bind(this),
+        };
+
+        this.$board.addEventListener("touchstart", this.eventListeners.dragStart);
+        this.$board.addEventListener("touchmove", this.eventListeners.dragging);
+        this.$board.addEventListener("touchend", this.eventListeners.dragEnd);
+
+        this.$board.addEventListener('mousedown', this.eventListeners.dragStart);
+        this.$board.addEventListener('mousemove', this.eventListeners.dragging);
+        this.$board.addEventListener('mouseup', this.eventListeners.dragEnd);
+
+        return this.returnObject;
+      }
+
+      this.releaseEventListeners = function() {
+        this.$board.removeEventListener("touchstart", this.eventListeners.dragStart);
+        this.$board.removeEventListener("touchmove", this.eventListeners.dragging);
+        this.$board.removeEventListener("touchend", this.eventListeners.dragEnd);
+        this.$board.removeEventListener("touchcancel", this.eventListeners.dragEnd);
+
+        this.$board.removeEventListener('mousedown', this.eventListeners.dragStart);
+        this.$board.removeEventListener('mousemove', this.eventListeners.dragging);
+        this.$board.removeEventListener('mouseup', this.eventListeners.dragEnd);
+        this.$board.removeEventListener('mouseleave', this.eventListeners.dragEnd);
+
+        this.eventListeners = null;
+      }
+
+      this.registerDragStartListener = function (listener) {
+        this.externalEventListeners.dragStart = listener;
+        return this.returnObject;
+      }
+
+      this.registerDragEndListener = function (listener) {
+        this.externalEventListeners.dragEnd = listener;
+        return this.returnObject;
+      }
+
+      this.registerDraggingListener = function (listener) {
+        this.externalEventListeners.dragging = listener;
+        return this.returnObject;
+      }
+
+      this.publishExternalEventListener = function(eventType, event) {
+        if (this.externalEventListeners[eventType] == null) {
+          return;
+        }
+        this.externalEventListeners[eventType]({ eventType, event });
+      }
+
+      this.destroy = function() {
+        this.active = null;
+        this.returnObject = null;
+        this.externalEventListeners = null;
+        this.releaseEventListeners();
+        this.removeElements();
+      }
+
+      this.removeElements = function() {
+        for (let element of this.$dragElements) {
+          element.destroy();
+        }
+        this.$activeElement = null;
+        this.$dragElements = null;
+        this.$board.remove();
+        this.$board = null;
+      }
+
+      this.returnObject = function() {
+        return {
+          draggable: this.draggable.bind(this),
+          destroy: this.destroy.bind(this),
+          onDragStart: this.registerDragStartListener.bind(this),
+          onDragEnd: this.registerDragEndListener.bind(this),
+          onDragging: this.registerDraggingListener.bind(this),
+        };
+      }
+    }).call(DragBoard.prototype);
+
+    return {
+      on(selectorId) {
+        return new DragBoard(selectorId);
+      },
+    };
+}(
+  (function DragFactory() {
+
+    function Drag($element) {
+      this.$self = $element;
+      
+      this.initialX = 0;
+      this.initialY = 0;
+
+      this.currentX = 0;
+      this.currentY = 0;
+      
+      this.offsetX = 0;
+      this.offsetY = 0;
+    }
+
+    (function DragPrototype() {
+
+      this.equals = function($element) {
+        return this.$self == $element;
+      }
+
+      this.destroy = function() {
+        if (this.$self == null) {
+          return;
+        }
+        this.$self.remove();
+        this.$self = null;
+        this.initialX = null;
+        this.initialY = null;
+        this.currentX = null;
+        this.currentY = null;
+        this.offsetX = null;
+        this.offsetY = null;
+      }
+
+      this.moveStart = function(clientX, clientY) {
+        this.initialX = clientX - this.offsetX;
+        this.initialY = clientY - this.offsetY;
+      }
+
+      this.move = function(clientX, clientY) {
+        this.currentX = clientX - this.initialX;
+        this.currentY = clientY - this.initialY;
+
+        this.offsetX = this.currentX;
+        this.offsetY = this.currentY;
+
+        this.$self.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;
+      }
+
+      this.moveEnd = function() {
+        this.initX = this.currentX;
+        this.initY = this.currentY;
+      }
+    }).call(Drag.prototype);
+
+    return Drag;
+  }()),
+
+))));
