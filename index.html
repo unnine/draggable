@@ -8,6 +8,59 @@
   <script src="./DragBoard.js"></script>
 </head>
 <style>
+  body {
+    margin: 0;
+  }
+
+  #board {
+    background-color: rgb(250, 250, 250);
+  }
+
+  rect {
+    position: relative;
+    fill: white;
+    width: 140px;
+    height: 60px;
+    stroke: rgb(100, 70, 200);
+    cursor: move;
+    rx: 5;
+    ry: 5
+  }
+</style>
+<body>
+ 
+  <svg id="board" viewBox="0 0 1000 1000">
+    <g class="card">
+      <rect width="100px" height="40px"></rect>
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+      <image href="./circle.svg" height="10" width="10" />
+    </g>
+    <g>
+    <rect></rect>
+  </g>
+  </svg>
+
+  <script>
+    DragBoard
+      .on('#board')
+      .draggable('rect', {
+        svg: true,
+        withSibling: true,
+      });
+  </script>
+</body>
+</html>
+<!-- <style>
+  body {
+    margin: 0;
+  }
+
   #board {
     width: 100vw;
     height: 100vh;
@@ -15,12 +68,22 @@
   }
 
   .card {
-    width: 100px;
-    height: 40px;
-    background-color: rgb(200, 200, 200);
-    border: 1xp solid rgb(200, 200, 200);
-    border-radius: 6px;
-    margin: 5px;
+    position: relative;
+    width: 140px;
+    height: 60px;
+    background-color: rgb(255, 255, 255);
+    border: 1px solid rgb(100, 70, 200);
+    border-radius: 8px;
+    cursor: grab;
+    z-index: 2;
+  }
+
+  .card:active {
+    cursor: grabbing;
+  }
+
+  .connectable {
+    position: relative;
   }
 </style>
 <body>
@@ -29,7 +92,7 @@
   <div class="card"></div>
   <div class="card"></div>
   <div class="card"></div>
-  <div class="card"></div>
+  <div class="card"><div class="connectable"></div></div>
 </div>
   
 
@@ -41,4 +104,4 @@
 
   </script>
 </body>
-</html>
+</html> -->

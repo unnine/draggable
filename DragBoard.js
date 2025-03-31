@@ -101,13 +101,13 @@
         return e.type.startsWith('touch');
       }
 
-      this.draggable = function(selector) {
+      this.draggable = function(selector, dragOption) {
         const elements = document.querySelectorAll(selector);
         if (elements.length <= 0) {
           return;
         }
         for (let element of elements) {
-          this.$dragElements.push(new Drag(element));
+          this.$dragElements.push(new Drag(this.$board, element, dragOption));
         }
         return this.returnObject;
       }
@@ -203,9 +203,11 @@
 }(
   (function DragFactory() {
 
-    function Drag($element) {
-      this.$self = $element;
-      
+    function Drag($dragBoard, $element, option) {
+      this.$dragBoard = $dragBoard;
+      this.$dragElements = [$element];
+      this.option = option;
+
       this.initialX = 0;
       this.initialY = 0;
 
@@ -214,20 +216,58 @@
       
       this.offsetX = 0;
       this.offsetY = 0;
+
+      this.setSiblingElements($element);
     }
 
     (function DragPrototype() {
 
+      this.setSiblingElements = function($element) {
+        if (!this.option.withSibling) {
+          return;
+        }
+        const nextSiblings = this.getNextSiblingAll($element);
+        const prevSiblings = this.getprevSiblingAll($element);
+        this.$dragElements.push(...prevSiblings);
+        this.$dragElements.push(...nextSiblings);
+      }
+
+      this.getNextSiblingAll = function($element) {
+        const nextSiblings = [];
+        let $e = $element;
+        
+        while($e.nextElementSibling) {
+          $e = $e.nextElementSibling;
+          nextSiblings.push($e);
+        }
+        return nextSiblings;
+      }
+
+      this.getprevSiblingAll = function($element) {
+        const prevSiblings = [];
+        let $e = $element;
+        
+        while($e.prevElementSibling) {
+          $e = $e.prevElementSibling;
+          prevSiblings.push($e);
+        }
+        return prevSiblings;
+      }
+
       this.equals = function($element) {
-        return this.$self == $element;
+        return this.$dragElements[0] == $element;
       }
 
       this.destroy = function() {
-        if (this.$self == null) {
+        if (this.$dragElements.length <= 0) {
           return;
         }
-        this.$self.remove();
-        this.$self = null;
+        for (let $element of this.$dragElements) {
+          $element.remove();  
+        }
+        this.$dragElements = null;
+        this.$dragBoard = null;
+        this.option = null;
         this.initialX = null;
         this.initialY = null;
         this.currentX = null;
@@ -236,19 +276,37 @@
         this.offsetY = null;
       }
 
+      this.getCoordinate = function(clientX, clientY) {
+        if (this.option.svg) {
+          const CTM = this.$dragElements[0].getScreenCTM();
+          return {
+            x: clientX / CTM.a,
+            y: clientY / CTM.d,
+          };
+        }
+        return {
+          x: clientX,
+          y: clientY,
+        };
+      }
+
       this.moveStart = function(clientX, clientY) {
-        this.initialX = clientX - this.offsetX;
-        this.initialY = clientY - this.offsetY;
+        const { x, y } = this.getCoordinate(clientX, clientY);
+        this.initialX = x - this.offsetX;
+        this.initialY = y - this.offsetY;
       }
 
       this.move = function(clientX, clientY) {
-        this.currentX = clientX - this.initialX;
-        this.currentY = clientY - this.initialY;
+        const { x, y } = this.getCoordinate(clientX, clientY);
+        this.currentX = x - this.initialX;
+        this.currentY = y - this.initialY;
 
         this.offsetX = this.currentX;
         this.offsetY = this.currentY;
 
-        this.$self.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;
+        for (let $element of this.$dragElements) {
+          $element.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;  
+        }
       }
 
       this.moveEnd = function() {
