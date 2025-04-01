@@ -107,7 +107,7 @@
           return;
         }
         for (let element of elements) {
-          this.$dragElements.push(new Drag(this.$board, element, dragOption));
+          this.$dragElements.push(new Drag(element, dragOption));
         }
         return this.returnObject;
       }
@@ -203,8 +203,7 @@
 }(
   (function DragFactory() {
 
-    function Drag($dragBoard, $element, option = {}) {
-      this.$dragBoard = $dragBoard;
+    function Drag($element, option = {}) {
       this.$dragElements = [$element];
       this.option = option;
 
@@ -218,6 +217,8 @@
       this.offsetY = 0;
 
       this.setSiblingElements($element);
+
+      console.log(this.$dragElements);
     }
 
     (function DragPrototype() {
@@ -266,7 +267,6 @@
           $element.remove();  
         }
         this.$dragElements = null;
-        this.$dragBoard = null;
         this.option = null;
         this.initialX = null;
         this.initialY = null;
