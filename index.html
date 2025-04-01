@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 
-  <link href="./SVGConnectable.css" rel="stylesheet" />
+  <link href="./DragBoard.css" rel="stylesheet" />
 
   <script src="./DragBoard.js"></script>
-  <script src="./SVGConnectable.js"></script>
 </head>
 <style>
   body {
@@ -38,95 +37,22 @@
     x: 100;
     y: 100;
   }
-  
-  /* .card {
-    position: relative;
-    width: 100%;
-  }
-
-  .card image {
-    opacity: 0;
-  }
-
-  .card:hover image {
-    opacity: 0.4;
-  }
-
-  .card:hover image:hover {
-    cursor: grab;
-    opacity: 1;
-  }
-
-  .card:hover image:active {
-    cursor: grabbing;
-    opacity: 1;
-  }
-
-  .card:hover .nw {
-    x: var(--coord-x-min);
-    y: var(--coord-y-min);
-  }
-  .card:hover .n {
-    x: var(--coord-x-mid);
-    y: var(--coord-y-min);
-  }
-  .card:hover .ne {
-    x: var(--coord-x-max);
-    y: var(--coord-y-min);
-  }
-  .card:hover .w {
-    x: var(--coord-x-min);
-    y: var(--coord-y-mid)
-  }
-  .card:hover .e {
-    x: var(--coord-x-max);
-    y: var(--coord-y-mid);
-  }
-  .card:hover .sw {
-    x: var(--coord-x-min);
-    y: var(--coord-y-max);
-  }
-  .card:hover .s {
-    x: var(--coord-x-mid);
-    y: var(--coord-y-max);
-  }
-  .card:hover .se {
-    x: var(--coord-x-max);
-    y: var(--coord-y-max);
-  } */
 </style>
 <body>
  
   <svg id="board">
-    <!-- <g class="card"> -->
-      <rect class="rect1"></rect>
-      <!-- <image href="./circle.svg" height="13" width="13" class="nw" />
-      <image href="./circle.svg" height="13" width="13" class="n" />
-      <image href="./circle.svg" height="13" width="13" class="ne" />
-      <image href="./circle.svg" height="13" width="13" class="w" />
-      <image href="./circle.svg" height="13" width="13" class="e" />
-      <image href="./circle.svg" height="13" width="13" class="sw" />
-      <image href="./circle.svg" height="13" width="13" class="s" />
-      <image href="./circle.svg" height="13" width="13" class="se" /> -->
-    <!-- </g> -->
+    <!-- <g> -->
+    <rect></rect>
+  <!-- </g> -->
   </svg>
 
   <script>
-      // SVGConnector
-      //   .toConnectable('.rect1');
-
-      //   DragBoard
-      // .on('#board')
-      // .draggable('rect', {
-      //   svg: true,
-      //   withSibling: true,
-      // });
-
-      const a = `console.log(this);`
-
-      const b = new Function(a);
-      console.log(b);
-      b();
+        DragBoard
+      .on('#board')
+      .draggable('rect', {
+        svg: true,
+        withSibling: true,
+      });
   </script>
 </body>
 </html>>

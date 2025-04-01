@@ -1,0 +1,20 @@
+.svg-connectable {
+  position: relative;
+  cursor: grab;
+}
+
+.svg-connectable ~ .connectable-icon {
+  opacity: 0;
+}
+
+.svg-connectable:hover ~ .connectable-icon {
+  opacity: 0.4;
+}
+
+.svg-connectable ~ .connectable-icon:hover {
+  opacity: 0.8;
+}
+
+.svg-connectable:hover ~ .connectable-icon:active {
+  opacity: 1;
+}
