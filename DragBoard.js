@@ -11,10 +11,11 @@
   else {
     window['DragBoard'] = factory;
   }
-}((function DragBoardFactory(Drag, SVGConnector) {
+}((function DragBoardFactory(Drag, SVGConnectorFactory) {
 
     function DragBoard(selector) {
       this.$board = document.querySelector(selector);
+      this.svgConnector = SVGConnectorFactory.create(this.$board);
       this.dragElements = [];
 
       this.active = false;
@@ -107,7 +108,7 @@
           return;
         }
         for (let element of elements) {
-          SVGConnector.toConnectable(selector);
+          this.svgConnector.toConnectable(element);
           this.dragElements.push(new Drag(element, dragOption));
         }
         return this.returnObject;
@@ -160,11 +161,11 @@
         return this.returnObject;
       }
 
-      this.publishExternalEventListener = function(eventType, event) {
+      this.publishExternalEventListener = function(eventType, originalEvent) {
         if (this.externalEventListeners[eventType] == null) {
           return;
         }
-        this.externalEventListeners[eventType]({ eventType, event });
+        this.externalEventListeners[eventType]({ eventType, originalEvent });
       }
 
       this.destroy = function() {
@@ -236,6 +237,7 @@
         }
         const nextSiblings = this.getNextSiblingAll($element);
         const prevSiblings = this.getprevSiblingAll($element);
+
         this.dragElements.push(...prevSiblings);
         this.dragElements.push(...nextSiblings);
       }
@@ -350,9 +352,51 @@
 
   (function SVGConnectorFactory() {
 
-    function SVGConnector() {}
+    function SVGConnector($board) {
+      this.$board = $board;
+      this.returnObject = this.returnObject();
+      return this.returnObject;
+    }
 
-    (function SVGConnectorProtorype() {
+    (function SVGConnectorPrototype() {
+
+      this.path = {
+        connect: {
+          $element: document.createElementNS('http://www.w3.org/2000/svg',"path"),
+          $startPort: null,
+          $targetPort: null,
+
+          initialX: null,
+          initialY: null,
+          isConnecting: false,
+
+          start($port) {
+            $port.classList.add('connecting');
+            
+            const { x, y, width, height } = $port.getBoundingClientRect();
+            
+            this.isConnecting = true;
+            this.initialX = x + width / 2;
+            this.initialY = y + height / 2;
+            this.$startPort = $port;
+            this.ing(this.initialX, this.initialY);
+          },
+          end() {
+            this.isConnecting = false;
+            this.initialX = null;
+            this.initialY = null;
+            this.$startPort.classList.remove('connecting');
+            this.$startPort = null;
+            this.$targetPort = null;
+            this.$element.remove();
+          },
+          ing(x, y) {
+            this.$element.setAttribute('d', `M ${this.initialX} ${this.initialY} L ${x} ${y}`)
+          },
+        },
+      };
+      this.path.connect.$element.setAttribute('stroke', 'rgb(70, 70, 120)');
+      this.path.connect.$element.setAttribute('stroke-width', '1');
 
       this.coord = {
         minX: -5,
@@ -375,14 +419,23 @@
         const { x, y, width, height } = $element.getBoundingClientRect();
 
         $element.classList.add('svg-connectable');
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.minX, this.coord.minY));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.midX(width), this.coord.minY));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.maxX(width), this.coord.minY));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.minX, this.coord.midY(height)));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.maxX(width), this.coord.midY(height)));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.minX, this.coord.maxY(height)));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.midX(width), this.coord.maxY(height)));
-        $element.insertAdjacentElement('afterend', this.createConnectPortElement(x, y, this.coord.maxX(width), this.coord.maxY(height)));
+
+        this.addConnectDraggingEventListener();
+
+        this.addConnectPort($element, x, y, this.coord.minX, this.coord.minY);
+        this.addConnectPort($element, x, y, this.coord.midX(width), this.coord.minY);
+        this.addConnectPort($element, x, y, this.coord.maxX(width), this.coord.minY);
+        this.addConnectPort($element, x, y, this.coord.minX, this.coord.midY(height));
+        this.addConnectPort($element, x, y, this.coord.maxX(width), this.coord.midY(height));
+        this.addConnectPort($element, x, y, this.coord.minX, this.coord.maxY(height));
+        this.addConnectPort($element, x, y, this.coord.midX(width), this.coord.maxY(height));
+        this.addConnectPort($element, x, y, this.coord.maxX(width), this.coord.maxY(height));
+      }
+
+      this.addConnectPort = function($element, x, y, correctionX, correctionY) {
+        const port = this.createConnectPortElement(x, y, correctionX, correctionY);
+        this.addConnectStartEventListener(port);
+        $element.insertAdjacentElement('afterend', port);
       }
 
       this.createConnectPortElement = function(x, y, correctionX, correctionY) {
@@ -426,15 +479,41 @@
 
         return svg;
       }
+
+      this.addConnectDraggingEventListener = function() {
+        document.addEventListener('mousemove', e => {
+          if (!this.path.connect.isConnecting) {
+            return;
+          }
+          this.path.connect.ing(e.clientX, e.clientY);
+        });
+
+        document.addEventListener('mouseup', e => {
+          if (!this.path.connect.isConnecting) {
+            return;
+          }
+          this.path.connect.end();
+        });
+      }
+
+      this.addConnectStartEventListener = function(port) {
+
+        port.addEventListener('mousedown', e => {
+          this.path.connect.start(port);
+          this.$board.appendChild(this.path.connect.$element);
+        });
+      }
+
+      this.returnObject = function() {
+        return {
+          toConnectable: this.toConnectable.bind(this),
+        };
+      }
     }).call(SVGConnector.prototype);
 
     return {
-      toConnectable(selector) {
-        const $elements = document.querySelectorAll(selector);
-        
-        for (let $element of $elements) {
-          SVGConnector.prototype.toConnectable($element);
-        }
+      create($board) {
+        return new SVGConnector($board);
       },
     };
   }()),

@@ -18,3 +18,7 @@
 .svg-connectable:hover ~ .connectable-icon:active {
   opacity: 1;
 }
+
+.svg-connectable ~ .connectable-icon.connecting {
+  opacity: 1;
+}

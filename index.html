@@ -41,19 +41,47 @@
 <body>
  
   <svg id="board">
-    <!-- <g> -->
-    <rect></rect>
-  <!-- </g> -->
+    <g>
+      <rect></rect>
+    </g>
   </svg>
 
+
   <script>
-        DragBoard
+    DragBoard
       .on('#board')
       .draggable('rect', {
         svg: true,
         withSibling: true,
       });
+
+      // let iX, iY;
+      // let path;
+
+      // document.addEventListener('mousedown', e => {
+      //   iX = e.clientX;
+      //   iY = e.clientY;
+
+      //   path = document.createElementNS('http://www.w3.org/2000/svg',"path"); 
+      //   path.setAttribute('stroke', 'green');
+      //   path.setAttribute('stroke-width', '1');
+      //   path.setAttribute('d', `M ${iX},${iY} L ${iX},${iY}`);
+      //   document.getElementById('board').appendChild(path);
+      // });
+
+      // document.addEventListener('mousemove', e => {
+      //   if (path == null) {
+      //     return;
+      //   }
+      //   path.setAttribute('d', `M ${iX},${iY} L ${e.clientX},${e.clientY}`);
+      //   console.log(path.getAttribute('d'));
+      // });
+
+      // document.addEventListener('mouseup', e => {
+      //   path.remove();
+      //   path = null;
+      // });
   </script>
 </body>
-</html>>
+</html>
 </html>
