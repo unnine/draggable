@@ -15,7 +15,7 @@
 
     function DragBoard(selector) {
       this.$board = document.querySelector(selector);
-      this.$dragElements = [];
+      this.dragElements = [];
 
       this.active = false;
       this.$activeElement = null;
@@ -42,9 +42,9 @@
       };
 
       this.getDragElementBySelected = function($selectedElement) {
-        for (let $element of this.$dragElements) {
-          if ($element.equals($selectedElement)) {
-            return $element;
+        for (let element of this.dragElements) {
+          if (element.equals($selectedElement)) {
+            return element;
           }
         }
         return null;
@@ -107,7 +107,7 @@
           return;
         }
         for (let element of elements) {
-          this.$dragElements.push(new Drag(element, dragOption));
+          this.dragElements.push(new Drag(element, dragOption));
         }
         return this.returnObject;
       }
@@ -175,11 +175,11 @@
       }
 
       this.removeElements = function() {
-        for (let element of this.$dragElements) {
+        for (let element of this.dragElements) {
           element.destroy();
         }
         this.$activeElement = null;
-        this.$dragElements = null;
+        this.dragElements = null;
         this.$board.remove();
         this.$board = null;
       }
@@ -204,21 +204,26 @@
   (function DragFactory() {
 
     function Drag($element, option = {}) {
-      this.$dragElements = [$element];
+      this.dragElements = [];
       this.option = option;
 
-      this.initialX = 0;
-      this.initialY = 0;
+      this.dragElements.push(this.makeDragElement($element));
 
-      this.currentX = 0;
-      this.currentY = 0;
+      const { x, y } = $element.getBoundingClientRect();
+
+      this.initialX = x;
+      this.initialY = y;
+
+      this.startedX = x;
+      this.startedY = y;
+
+      this.currentX = x;
+      this.currentY = y;
       
       this.offsetX = 0;
       this.offsetY = 0;
 
       this.setSiblingElements($element);
-
-      console.log(this.$dragElements);
     }
 
     (function DragPrototype() {
@@ -229,8 +234,8 @@
         }
         const nextSiblings = this.getNextSiblingAll($element);
         const prevSiblings = this.getprevSiblingAll($element);
-        this.$dragElements.push(...prevSiblings);
-        this.$dragElements.push(...nextSiblings);
+        this.dragElements.push(...prevSiblings);
+        this.dragElements.push(...nextSiblings);
       }
 
       this.getNextSiblingAll = function($element) {
@@ -239,7 +244,7 @@
         
         while($e.nextElementSibling) {
           $e = $e.nextElementSibling;
-          nextSiblings.push($e);
+          nextSiblings.push(this.makeDragElement($e));
         }
         return nextSiblings;
       }
@@ -250,26 +255,31 @@
         
         while($e.prevElementSibling) {
           $e = $e.prevElementSibling;
-          prevSiblings.push($e);
+          prevSiblings.push(this.makeDragElement($e));
         }
         return prevSiblings;
       }
 
+      this.makeDragElement = function($element) {
+        const { x, y } = $element.getBoundingClientRect();
+        return { $target: $element, initialX: x, initialY: y };
+      }
+
       this.equals = function($element) {
-        return this.$dragElements[0] == $element;
+        return this.dragElements[0].$target == $element;
       }
 
       this.destroy = function() {
-        if (this.$dragElements.length <= 0) {
+        if (this.dragElements.length <= 0) {
           return;
         }
-        for (let $element of this.$dragElements) {
-          $element.remove();  
+        for (let dragElement of this.dragElements) {
+          dragElement.$target.remove();  
         }
-        this.$dragElements = null;
+        this.dragElements = null;
         this.option = null;
-        this.initialX = null;
-        this.initialY = null;
+        this.startedX = null;
+        this.startedY = null;
         this.currentX = null;
         this.currentY = null;
         this.offsetX = null;
@@ -278,7 +288,7 @@
 
       this.getCoordinate = function(clientX, clientY) {
         if (this.option.svg) {
-          const CTM = this.$dragElements[0].getScreenCTM();
+          const CTM = this.dragElements[0].$target.getScreenCTM();
           return {
             x: clientX / CTM.a,
             y: clientY / CTM.d,
@@ -292,26 +302,35 @@
 
       this.moveStart = function(clientX, clientY) {
         const { x, y } = this.getCoordinate(clientX, clientY);
-        this.initialX = x - this.offsetX;
-        this.initialY = y - this.offsetY;
+        this.startedX = x - this.offsetX;
+        this.startedY = y - this.offsetY;
       }
 
       this.move = function(clientX, clientY) {
         const { x, y } = this.getCoordinate(clientX, clientY);
-        this.currentX = x - this.initialX;
-        this.currentY = y - this.initialY;
+        this.currentX = x - this.startedX;
+        this.currentY = y - this.startedY;
 
         this.offsetX = this.currentX;
         this.offsetY = this.currentY;
 
-        for (let $element of this.$dragElements) {
-          $element.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;  
+        for (let element of this.dragElements) {
+          if (this.isSvg(element)) {
+            element.$target.setAttribute('x', this.currentX + element.initialX);
+            element.$target.setAttribute('y', this.currentY + element.initialY);
+            continue;
+          }
+          element.$target.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;
         }
       }
 
       this.moveEnd = function() {
-        this.initX = this.currentX;
-        this.initY = this.currentY;
+        this.startedX = this.currentX;
+        this.startedY = this.currentY;
+      }
+
+      this.isSvg = function(dragElement) {
+        return dragElement.$target.tagName === 'svg';
       }
     }).call(Drag.prototype);
 
