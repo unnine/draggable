@@ -136,12 +136,10 @@
         this.$board.removeEventListener("touchstart", this.eventListeners.dragStart);
         this.$board.removeEventListener("touchmove", this.eventListeners.dragging);
         this.$board.removeEventListener("touchend", this.eventListeners.dragEnd);
-        this.$board.removeEventListener("touchcancel", this.eventListeners.dragEnd);
 
         this.$board.removeEventListener('mousedown', this.eventListeners.dragStart);
         this.$board.removeEventListener('mousemove', this.eventListeners.dragging);
         this.$board.removeEventListener('mouseup', this.eventListeners.dragEnd);
-        this.$board.removeEventListener('mouseleave', this.eventListeners.dragEnd);
 
         this.eventListeners = null;
       }
@@ -207,10 +205,10 @@
   (function DragFactory() {
 
     function Drag($element, option = {}) {
-      this.dragElements = [];
+      this.targets = [];
       this.option = option;
 
-      this.dragElements.push(this.makeDragElement($element));
+      this.targets.push(this.makeDragElement($element));
 
       const { x, y } = $element.getBoundingClientRect();
 
@@ -232,14 +230,11 @@
     (function DragPrototype() {
 
       this.setSiblingElements = function($element) {
-        if (!this.option.withSibling) {
-          return;
-        }
         const nextSiblings = this.getNextSiblingAll($element);
         const prevSiblings = this.getprevSiblingAll($element);
 
-        this.dragElements.push(...prevSiblings);
-        this.dragElements.push(...nextSiblings);
+        this.targets.push(...prevSiblings);
+        this.targets.push(...nextSiblings);
       }
 
       this.getNextSiblingAll = function($element) {
@@ -270,17 +265,17 @@
       }
 
       this.equals = function($element) {
-        return this.dragElements[0].$target == $element;
+        return this.targets[0].$target == $element;
       }
 
       this.destroy = function() {
-        if (this.dragElements.length <= 0) {
+        if (this.targets.length <= 0) {
           return;
         }
-        for (let dragElement of this.dragElements) {
+        for (let dragElement of this.targets) {
           dragElement.$target.remove();  
         }
-        this.dragElements = null;
+        this.targets = null;
         this.option = null;
         this.startedX = null;
         this.startedY = null;
@@ -288,6 +283,8 @@
         this.currentY = null;
         this.offsetX = null;
         this.offsetY = null;
+        this.initialX = null;
+        this.initialY = null;
       }
 
       this.moveStart = function(clientX, clientY) {
@@ -304,12 +301,12 @@
         this.offsetX = this.currentX;
         this.offsetY = this.currentY;
 
-        for (let element of this.dragElements) {
-          if (this.isSvg(element)) {
-            this.coordinate(element);
+        for (let target of this.targets) {
+          if (this.isSvg(target)) {
+            this.coordinate(target);
             continue;
           }
-          this.translate(element);
+          this.translate(target);
         }
       }
 
@@ -324,7 +321,7 @@
 
       this.getCoordinate = function(clientX, clientY) {
         if (this.option.svg) {
-          const CTM = this.dragElements[0].$target.getScreenCTM();
+          const CTM = this.targets[0].$target.getScreenCTM();
           return {
             x: clientX / CTM.a,
             y: clientY / CTM.d,
@@ -391,11 +388,11 @@
             this.$element.remove();
           },
           ing(x, y) {
-            this.$element.setAttribute('d', `M ${this.initialX} ${this.initialY} L ${x} ${y}`)
+            this.$element.setAttribute('d', `M ${this.initialX} ${this.initialY} L ${x - 1} ${y - 1}`)
           },
         },
       };
-      this.path.connect.$element.setAttribute('stroke', 'rgb(70, 70, 120)');
+      this.path.connect.$element.setAttribute('stroke', 'rgb(100, 100, 150)');
       this.path.connect.$element.setAttribute('stroke-width', '1');
 
       this.coord = {
@@ -417,11 +414,11 @@
 
       this.toConnectable = function($element) {
         const { x, y, width, height } = $element.getBoundingClientRect();
-
+        
         $element.classList.add('svg-connectable');
-
+        
+        this.wrapToGroup($element);
         this.addConnectDraggingEventListener();
-
         this.addConnectPort($element, x, y, this.coord.minX, this.coord.minY);
         this.addConnectPort($element, x, y, this.coord.midX(width), this.coord.minY);
         this.addConnectPort($element, x, y, this.coord.maxX(width), this.coord.minY);
@@ -430,6 +427,12 @@
         this.addConnectPort($element, x, y, this.coord.minX, this.coord.maxY(height));
         this.addConnectPort($element, x, y, this.coord.midX(width), this.coord.maxY(height));
         this.addConnectPort($element, x, y, this.coord.maxX(width), this.coord.maxY(height));
+      }
+
+      this.wrapToGroup = function($element) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        $element.parentElement.insertBefore(g, $element);
+        g.appendChild($element);
       }
 
       this.addConnectPort = function($element, x, y, correctionX, correctionY) {

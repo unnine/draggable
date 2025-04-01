@@ -41,19 +41,15 @@
 <body>
  
   <svg id="board">
-    <g>
-      <rect></rect>
-    </g>
+    <rect id="1"></rect>
+    <rect id="2"></rect>
   </svg>
 
 
   <script>
     DragBoard
       .on('#board')
-      .draggable('rect', {
-        svg: true,
-        withSibling: true,
-      });
+      .draggable('rect', { svg: true });
 
       // let iX, iY;
       // let path;

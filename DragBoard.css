@@ -22,3 +22,8 @@
 .svg-connectable ~ .connectable-icon.connecting {
   opacity: 1;
 }
+
+
+.connectable-icon:hover {
+  opacity: 1;
+}
