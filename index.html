@@ -31,7 +31,6 @@
     width: var(--card-width);
     height: var(--card-height);
     stroke: rgb(100, 70, 200);
-    cursor: move;
     rx: 5;
     ry: 5;
     x: 100;
@@ -49,7 +48,7 @@
   <script>
     DragBoard
       .on('#board')
-      .draggable('rect', { svg: true });
+      .draggable('rect', { svg: true, withSibling: true });
 
       // let iX, iY;
       // let path;

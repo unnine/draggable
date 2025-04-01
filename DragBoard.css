@@ -1,6 +1,5 @@
 .svg-connectable {
   position: relative;
-  cursor: grab;
 }
 
 .svg-connectable ~ .connectable-icon {
@@ -23,7 +22,6 @@
   opacity: 1;
 }
 
-
-.connectable-icon:hover {
+.svg-connectable ~ .connected {
   opacity: 1;
 }

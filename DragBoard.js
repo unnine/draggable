@@ -160,6 +160,7 @@
       }
 
       this.publishExternalEventListener = function(eventType, originalEvent) {
+        originalEvent.preventDefault();
         if (this.externalEventListeners[eventType] == null) {
           return;
         }
@@ -230,6 +231,9 @@
     (function DragPrototype() {
 
       this.setSiblingElements = function($element) {
+        if (!this.option.withSibling) {
+          return;
+        }
         const nextSiblings = this.getNextSiblingAll($element);
         const prevSiblings = this.getprevSiblingAll($element);
 
@@ -357,12 +361,18 @@
 
     (function SVGConnectorPrototype() {
 
+      const createPath = () => {
+        const path = document.createElementNS('http://www.w3.org/2000/svg',"path");
+        path.setAttribute('stroke', 'rgb(100, 100, 150)');
+        path.setAttribute('stroke-width', '1');
+        return path;
+      }
+
       this.path = {
         connect: {
-          $element: document.createElementNS('http://www.w3.org/2000/svg',"path"),
+          $element: createPath(),
           $startPort: null,
-          $targetPort: null,
-
+          // $targetPort: null,
           initialX: null,
           initialY: null,
           isConnecting: false,
@@ -378,6 +388,19 @@
             this.$startPort = $port;
             this.ing(this.initialX, this.initialY);
           },
+          connected($port) {
+            this.$targetPort = $port;
+
+            this.$startPort.classList.add('connected');
+            this.$targetPort.classList.add('connected');
+
+            const startPortRect = this.$startPort.getBoundingClientRect();
+            const targetPortRect = this.$targetPort.getBoundingClientRect();
+
+            const fixedPath = createPath();
+            fixedPath.setAttribute('d', `M ${startPortRect.x + 6} ${startPortRect.y + 6} L ${targetPortRect.x + 6} ${targetPortRect.y + 6}`);
+            return fixedPath;
+          },
           end() {
             this.isConnecting = false;
             this.initialX = null;
@@ -388,12 +411,10 @@
             this.$element.remove();
           },
           ing(x, y) {
-            this.$element.setAttribute('d', `M ${this.initialX} ${this.initialY} L ${x - 1} ${y - 1}`)
+            this.$element.setAttribute('d', `M ${this.initialX} ${this.initialY} L ${x + 1} ${y + 1}`)
           },
         },
       };
-      this.path.connect.$element.setAttribute('stroke', 'rgb(100, 100, 150)');
-      this.path.connect.$element.setAttribute('stroke-width', '1');
 
       this.coord = {
         minX: -5,
@@ -485,13 +506,14 @@
 
       this.addConnectDraggingEventListener = function() {
         document.addEventListener('mousemove', e => {
+          e.preventDefault();
           if (!this.path.connect.isConnecting) {
             return;
           }
           this.path.connect.ing(e.clientX, e.clientY);
         });
-
         document.addEventListener('mouseup', e => {
+          e.preventDefault();
           if (!this.path.connect.isConnecting) {
             return;
           }
@@ -500,10 +522,18 @@
       }
 
       this.addConnectStartEventListener = function(port) {
-
         port.addEventListener('mousedown', e => {
+          e.preventDefault();
           this.path.connect.start(port);
           this.$board.appendChild(this.path.connect.$element);
+        });
+        port.addEventListener('mouseup', e => {
+          e.preventDefault();
+          if (!this.path.connect.isConnecting) {
+            return;
+          }
+          const fixedPath = this.path.connect.connected(port);
+          this.$board.appendChild(fixedPath);
         });
       }
 
