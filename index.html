@@ -8,6 +8,7 @@
   <link href="./DragBoard.css" rel="stylesheet" />
 
   <script src="./DragBoard.js"></script>
+  <script src="./FlowBoard.js"></script>
 </head>
 <style>
   body {
@@ -46,36 +47,56 @@
 
 
   <script>
-    DragBoard
+    FlowBoard
       .on('#board')
       .draggable('rect', { svg: true, withSibling: true });
 
-      // let iX, iY;
-      // let path;
 
-      // document.addEventListener('mousedown', e => {
-      //   iX = e.clientX;
-      //   iY = e.clientY;
 
-      //   path = document.createElementNS('http://www.w3.org/2000/svg',"path"); 
-      //   path.setAttribute('stroke', 'green');
-      //   path.setAttribute('stroke-width', '1');
-      //   path.setAttribute('d', `M ${iX},${iY} L ${iX},${iY}`);
-      //   document.getElementById('board').appendChild(path);
-      // });
+      const port = {
+        id: null,
+        connected: false,
+        coord: {
+          initX: null,
+          initY: null,
+        },
+      };
 
-      // document.addEventListener('mousemove', e => {
-      //   if (path == null) {
-      //     return;
-      //   }
-      //   path.setAttribute('d', `M ${iX},${iY} L ${e.clientX},${e.clientY}`);
-      //   console.log(path.getAttribute('d'));
-      // });
+      const board = {
+        $self: null,
+        id: null,
+      }
+      
+      const node = {
+        $self: null,
+        id: null,
+        coord: {
+          initX: null,
+          initY: null,
+          startX: null,
+          startY: null,
+          currentX: null,
+          currentY: null,
+          offsetX: null,
+          offsetY: null,
+        },
+        ports: [
+          port,
+        ],
+      };
 
-      // document.addEventListener('mouseup', e => {
-      //   path.remove();
-      //   path = null;
-      // });
+      const portNode = {
+        [port.id]: [node.id],
+      }
+
+      const nodeList = [ node, ];
+
+      const portConnectTable = {
+        [port.id]: [
+          port.id,
+          port.id
+        ],
+      };
   </script>
 </body>
 </html>
