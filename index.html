@@ -40,63 +40,78 @@
 </style>
 <body>
  
-  <svg id="board">
-    <rect id="1"></rect>
-    <rect id="2"></rect>
-  </svg>
+  
+  <!-- <svg id="board"> -->
+    <!-- <rect id="1"></rect>
+    <rect id="2"></rect> -->
+  <!-- </svg> -->
+
 
 
   <script>
-    FlowBoard
-      .on('#board')
-      .draggable('rect', { svg: true, withSibling: true });
+    let rectId = 0;
+
+    const boards = [{
+      type: 'container',
+      id: 'board',
+      children: [{
+        type: 'dragElement',
+        tag: 'rect',
+        id: ++rectId,
+      }],
+    }];
+
+    FlowBoard.render('body', boards);
+
+    //   .on('#board')
+    //   .draggable('rect', { svg: true, withSibling: true });
 
 
 
-      const port = {
-        id: null,
-        connected: false,
-        coord: {
-          initX: null,
-          initY: null,
-        },
-      };
+      // const port = {
+      //   id: null,
+      //   connected: false,
+      //   coord: {
+      //     initX: null,
+      //     initY: null,
+      //   },
+      // };
 
-      const board = {
-        $self: null,
-        id: null,
-      }
+      // const board = {
+      //   $self: null,
+      //   id: null,
+      // }
       
-      const node = {
-        $self: null,
-        id: null,
-        coord: {
-          initX: null,
-          initY: null,
-          startX: null,
-          startY: null,
-          currentX: null,
-          currentY: null,
-          offsetX: null,
-          offsetY: null,
-        },
-        ports: [
-          port,
-        ],
-      };
+      // const node = {
+      //   $self: null,
+      //   id: null,
+      //   coord: {
+      //     initX: null,
+      //     initY: null,
+      //     startX: null,
+      //     startY: null,
+      //     currentX: null,
+      //     currentY: null,
+      //     offsetX: null,
+      //     offsetY: null,
+      //   },
+      //   ports: [
+      //     port,
+      //   ],
+      // };
 
-      const portNode = {
-        [port.id]: [node.id],
-      }
+      // const portNode = {
+      //   [port.id]: [node.id],
+      // }
 
-      const nodeList = [ node, ];
+      // const nodeList = [ node, ];
 
-      const portConnectTable = {
-        [port.id]: [
-          port.id,
-          port.id
-        ],
-      };
+      // const portConnectTable = {
+      //   [port.id]: [
+      //     port.id,
+      //     port.id
+      //   ],
+      // };
   </script>
 </body>
 </html>
