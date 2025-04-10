@@ -20,12 +20,6 @@
 
     const dragBoards = __DoublyLinkedMapFactory.create();
 
-    const expect = (key) => {
-      return {
-        is: (value) => key === value,
-      };
-    }
-
     function createSVGTag(tagName) {
       return document.createElementNS('http://www.w3.org/2000/svg', tagName);
     }
@@ -118,7 +112,6 @@
           for (let $el of $els) {
             this.dragItems.push(new Drag($el));
           }
-          console.log(this.dragItems);
           return this.returnObject;
         }
 
