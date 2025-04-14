@@ -59,8 +59,14 @@
       .render()
       ;
 
+      window.setTimeout(() => {
+        document.getElementById('2').remove();
+      }, 500);
 
-      console.log(d);
+      window.setTimeout(() => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg',"rect");
+        document.getElementById('board').appendChild(rect);
+      }, 1000);
     // const boards = [{
     //   type: 'container',
     //   id: 'board',

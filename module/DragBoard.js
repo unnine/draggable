@@ -17,11 +17,13 @@
     function DragBoard($el, option = {}) {     
       this.initialized = false;
       this.option = option;
-      this.store = __DoublyLinkedMapFactory.create();
+      this.mutationObserver = null;
+      // this.store = __DoublyLinkedMapFactory.create();
       this.$board = $el;
       this.eventListeners = {};
       this.hooks = {};
       this.draggable = {
+        selectors: [],
         $elements: [],
         items: [],
       };
@@ -49,15 +51,6 @@
         },
       };
 
-      this.init = function() {
-        this.bindEventListeners();
-        this.callHook(this.EVENT.LIFE_CYCLE.READY, {
-          container: this.$board,
-          draggable: this.draggable.$elements,
-        });
-        this.initialized = true;
-      };
-
       this.registerHook = function(eventType, hook) {
         this.hooks[eventType] = hook;
         return this.returnObject;
@@ -69,6 +62,34 @@
         }
       }
 
+      this.init = function() {
+        this.bindEventListeners();
+        this.startDetectMutation();
+        this.callHook(this.EVENT.LIFE_CYCLE.READY, {
+          container: this.$board,
+          draggable: this.draggable.$elements,
+        });
+        this.initialized = true;
+      }
+
+      this.startDetectMutation = function() {
+        this.mutationObserver = new MutationObserver(this.mutationHandler.bind(this));
+        this.mutationObserver.observe(this.$board, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+      }
+
+      this.mutationHandler = function(mutations) {
+        mutations.forEach(mutation => {
+          const { addedNodes, removedNodes } = mutation;
+          
+          addedNodes.forEach(addedNode => this.toDraggable(addedNode));
+          removedNodes.forEach(removedNode => this.toUndraggable(removedNode));
+        });
+      };
+
       this.bindEventListeners = function() {
         this.eventListeners = {
           [this.EVENT.DRAG.START]: this.dragStartListener.bind(this),
@@ -76,13 +97,13 @@
           [this.EVENT.DRAG.END]: this.dragEndListener.bind(this),
         };
 
-        this.$board.addEventListener("touchstart", this.eventListeners.dragStart, { passive: true });
-        this.$board.addEventListener("touchmove", this.eventListeners.dragging, { passive: true });
-        this.$board.addEventListener("touchend", this.eventListeners.dragEnd, { passive: true });
+        this.$board.addEventListener("touchstart", this.eventListeners[this.EVENT.DRAG.START], { passive: true });
+        this.$board.addEventListener("touchmove", this.eventListeners[this.EVENT.DRAG.ING], { passive: true });
+        this.$board.addEventListener("touchend", this.eventListeners[this.EVENT.DRAG.END], { passive: true });
 
-        this.$board.addEventListener('mousedown', this.eventListeners.dragStart);
-        this.$board.addEventListener('mousemove', this.eventListeners.dragging);
-        this.$board.addEventListener('mouseup', this.eventListeners.dragEnd);
+        this.$board.addEventListener('mousedown', this.eventListeners[this.EVENT.DRAG.START]);
+        this.$board.addEventListener('mousemove', this.eventListeners[this.EVENT.DRAG.ING]);
+        this.$board.addEventListener('mouseup', this.eventListeners[this.EVENT.DRAG.END]);
 
         return this.returnObject;
       }
@@ -180,16 +201,63 @@
         return e.type.startsWith('touch');
       }
 
-      this.getAndAddToDraggableItem = function(selector) {
+      this.draggableItems = function(selector) {
         const $els = this.$board.querySelectorAll(selector);
         if ($els.length <= 0) {
           return;
         }
+
+        this.draggable.selectors.push(selector);
+        
         for (let $el of $els) {
-          this.draggable.items.push(new Drag($el, this.option));
-          this.draggable.$elements.push($el);
+          this.toDraggable($el);
         }
+
         return this.returnObject;
+      }
+
+      this.undraggableItems = function(selector) {
+        const $els = this.$board.querySelectorAll(selector);
+        if ($els.length <= 0) {
+          return;
+        }
+
+        for (let $el of $els) {
+          this.toUndraggable($el);
+        }
+
+        const index = this.draggable.selectors.findIndex(s => s == selector);
+        this.draggable.selectors.splice(index, 1);
+
+        return this.returnObject;
+      }
+
+      this.isDraggableMatches = function($el) {
+        if ($el == null || this.draggable.selectors.length === 0) {
+          return false;
+        }
+        return this.draggable.selectors.every(selector => $el.matches(selector));
+      }
+
+      this.toDraggable = function($el) {
+        if (!this.isDraggableMatches($el)) {
+          return;
+        }
+        this.draggable.$elements.push($el);
+        this.draggable.items.push(new Drag($el, this.option));
+      }
+
+      this.toUndraggable = function($el) {
+        if (!this.isDraggableMatches($el)) {
+          return;
+        }
+        const elementIndex = this.draggable.$elements.findIndex($element => $element == $el);
+        const itemIndex = this.draggable.items.findIndex(item => item.equals($el));
+
+        if (elementIndex !== -1 && itemIndex !== -1) {
+          this.draggable.$elements.splice(elementIndex, 1);
+          this.draggable.items.splice(itemIndex, 1);
+        }
       }
 
       this.render = function() {
@@ -206,10 +274,11 @@
         });
         this.removeElements();
         this.releaseEventListeners();
+        this.mutationObserver = null;
         this.eventListeners = null;
         this.$board = null;
         this.returnObject = null;
-        this.store = null;
+        // this.store = null;
         this.draggable = null;
         this.state = null;
         this.option = null;
@@ -231,7 +300,6 @@
 
       this.returnObject = function() {
         return {
-          draggable: this.getAndAddToDraggableItem.bind(this),
           destroy: this.destroy.bind(this),
           onReady: this.registerHook.bind(this, this.EVENT.LIFE_CYCLE.READY),
           onDestroy: this.registerHook.bind(this, this.EVENT.LIFE_CYCLE.DESTROY),
@@ -239,6 +307,8 @@
           onDragging: this.registerHook.bind(this, this.EVENT.DRAG.ING),
           onDragEnd: this.registerHook.bind(this, this.EVENT.DRAG.END),
           render: this.render.bind(this),
+          draggable: this.draggableItems.bind(this),
+          undraggable: this.undraggableItems.bind(this),
         };
       }
     }).call(DragBoard.prototype);
