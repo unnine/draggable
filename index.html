@@ -7,8 +7,7 @@
 
   <link href="./DragBoard.css" rel="stylesheet" />
 
-  <script src="./DragBoard.js"></script>
-  <script src="./FlowBoard.js"></script>
+  <script src="./module/DragBoard.js"></script>
 </head>
 <style>
   body {
@@ -41,27 +40,38 @@
 <body>
  
   
-  <!-- <svg id="board"> -->
-    <!-- <rect id="1"></rect>
-    <rect id="2"></rect> -->
-  <!-- </svg> -->
+  <svg id="board">
+    <rect id="1"></rect>
+    <rect id="2"></rect>
+  </svg>
 
 
 
   <script>
-    let rectId = 0;
+    const d = DragBoard
+      .on('#board', { svg: true })
+      .draggable('rect')
+      // .onDragStart(e => console.log(e))
+      // .onDragging(e => console.log(e))
+      // .onDragEnd(e => console.log(e))
+      // .onReady(e => console.log(e))
+      // .onDestroy(e => console.log(e))
+      .render()
+      ;
 
-    const boards = [{
-      type: 'container',
-      id: 'board',
-      children: [{
-        type: 'dragElement',
-        tag: 'rect',
-        id: ++rectId,
-      }],
-    }];
 
-    FlowBoard.render('body', boards);
+      console.log(d);
+    // const boards = [{
+    //   type: 'container',
+    //   id: 'board',
+    //   children: [{
+    //     type: 'dragElement',
+    //     tag: 'rect',
+    //     id: ++rectId,
+    //   }],
+    // }];
+
+    // FlowBoard.render('body', boards);
 
     //   .on('#board')
     //   .draggable('rect', { svg: true, withSibling: true });
