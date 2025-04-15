@@ -162,9 +162,6 @@
         view.style.margin = 0;
         view.classList.add('text-view');
         view.innerText = this.value;
-        view.addEventListener('select', e => {
-          console.log(e);
-        });
 
         this.bindTypingEventListener(viewWrap, view);
 
