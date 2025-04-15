@@ -32,7 +32,7 @@
       this.hooks = {};
       this.mutationObserver = null;
       this.eventListeners = {};
-      this.returnObject = this.returnObject();
+      this.returnObject = this.createReturnObject();
       return this.returnObject;
     }
 
@@ -73,18 +73,24 @@
 
       this.startDetectMutation = function() {
         this.mutationObserver = new MutationObserver(this.mutationHandler.bind(this));
-        this.mutationObserver.observe(this.$board, {
-          attributes: true,
-          childList: true,
-          subtree: true,
-        });
+        this.mutationObserver.observe(this.$board, { childList: true, subtree: true });
       }
 
       this.mutationHandler = function(mutations) {
         mutations.forEach(mutation => {
-          const { addedNodes, removedNodes } = mutation;
+          const { addedNodes, removedNodes, nextSibling, previousSibling } = mutation;
           
-          addedNodes.forEach(addedNode => this.toDraggable(addedNode));
+          if (this.isDraggableMatches(nextSibling)) {
+            this.refreshSiblingElements(nextSibling);
+            return;
+          }
+          
+          if (this.isDraggableMatches(previousSibling)) {
+            this.refreshSiblingElements(previousSibling);
+            return;
+          }
+
+          addedNodes.forEach(addNode => this.toDraggable(addNode));
           removedNodes.forEach(removedNode => this.toUndraggable(removedNode));
         });
       };
@@ -232,10 +238,28 @@
       }
 
       this.isDraggableMatches = function($el) {
-        if ($el == null || this.draggable.selectors.length === 0) {
+        if ($el == null) {
+          return false;
+        }
+        if (typeof $el.matches !== 'function') {
+          return false;
+        }
+        if (this.draggable.selectors.length === 0) {
           return false;
         }
         return this.draggable.selectors.every(selector => $el.matches(selector));
+      }
+
+      this.findDraggableItem = function($el) {
+        return this.draggable.items.find(item => item.equals($el));
+      }
+
+      this.refreshSiblingElements = function($el) {
+        const item = this.findDraggableItem($el);
+
+        if (item != null) {
+          item.refreshSiblingElements();
+        }
       }
 
       this.toDraggable = function($el) {
@@ -291,13 +315,7 @@
         this.$board.remove();
       }
 
-      this.returnObject = function() {
-        return {
-          draggable: this.draggable.bind(this),
-        };
-      }
-
-      this.returnObject = function() {
+      this.createReturnObject = function() {
         return {
           destroy: this.destroy.bind(this),
           onReady: this.registerHook.bind(this, this.EVENT.LIFE_CYCLE.READY),
@@ -313,8 +331,12 @@
     }).call(DragBoard.prototype);
 
     return {
-      on(selectorId, option) {
-        const $board = document.querySelector(selectorId);
+      on(selector, option) {
+        const $board = document.querySelector(selector);
+        if ($board == null) {
+          console.error(`not found drag board container. '${selector}'`);
+          return;
+        }
         return new DragBoard($board, option);
       },
     };
@@ -324,6 +346,7 @@
     'use strict'
 
     function Drag($el, option = {}) {
+      this.$group = null;
       this.self = null;
       this.siblingItems = [];
       
@@ -347,6 +370,10 @@
     (function DragPrototype() {
 
       this.init = function($el) {
+        if (this.option.grouping) {
+          this.$group = this.wrapToGroup($el);
+        }
+
         this.self = this.toDragItem($el);
 
         const { x, y } = $el.getBoundingClientRect();
@@ -360,15 +387,43 @@
         this.setSiblingElements($el);
       }
 
+      this.wrapToGroup = function($el) {
+        const $parent = $el.parentElement;
+        if ($parent.tagName === 'g') {
+          return $parent;
+        }
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        $el.parentElement.insertBefore(g, $el);
+        g.appendChild($el);
+        return g;
+      }
+
+      this.refreshSiblingElements = function() {
+        this.setSiblingElements(this.self.$target);
+      }
+
       this.setSiblingElements = function($el) {
         if (!this.option.withSibling) {
           return;
         }
-        const nextSiblings = this.getNextSiblingAll($el);
+        this.siblingItems = [];
+
         const prevSiblings = this.getPrevSiblingAll($el);
+        const nextSiblings = this.getNextSiblingAll($el);
 
         this.siblingItems.push(...prevSiblings);
         this.siblingItems.push(...nextSiblings);
+      }
+
+      this.getPrevSiblingAll = function($el) {
+        const prevSiblings = [];
+        let $prev = $el;
+        
+        while($prev.previousElementSibling) {
+          $prev = $prev.previousElementSibling;
+          prevSiblings.push(this.toDragItem($prev));
+        }
+        return prevSiblings;
       }
 
       this.getNextSiblingAll = function($el) {
@@ -380,17 +435,6 @@
           nextSiblings.push(this.toDragItem($next));
         }
         return nextSiblings;
-      }
-
-      this.getPrevSiblingAll = function($el) {
-        const prevSiblings = [];
-        let $prev = $el;
-        
-        while($prev.prevElementSibling) {
-          $prev = $prev.prevElementSibling;
-          prevSiblings.push(this.toDragItem($prev));
-        }
-        return prevSiblings;
       }
 
       this.toDragItem = function($el) {
@@ -469,6 +513,7 @@
 
       this.destroy = function() {
         this.removeElements();
+        this.siblingItems = null;
         this.offsetX = null;
         this.offsetY = null;
         this.currentX = null;
@@ -479,16 +524,19 @@
         this.initialY = null;
         this.option = null;
         this.self = null;
+        this.$group = null;
       }
   
       this.removeElements = function() {
-        if (this.siblingItems.length <= 0) {
-          return;
+        if (this.siblingItems.length > 0) {
+          for (let item of this.siblingItems) {
+            item.$target.remove();  
+          }
         }
-        for (let item of this.siblingItems) {
-          item.$target.remove();  
+
+        if (this.$group != null) {
+          this.$group.remove();
         }
-        this.siblingItems = null;
       }
 
     }).call(Drag.prototype);

@@ -8,6 +8,7 @@
   <link href="./DragBoard.css" rel="stylesheet" />
 
   <script src="./module/DragBoard.js"></script>
+  <script src="./module/SVGWritable.js"></script>
 </head>
 <style>
   body {
@@ -41,45 +42,55 @@
  
   
   <svg id="board">
-    <foreignObject x="100" y="100" width="200" height="80" style="overflow: visible;">
-      <textarea placeholder="qwdqjdp"></textarea>
-    </foreignObject>
-    <rect id="1">
-    </rect>
+    <rect id="1"></rect>
     <rect id="2"></rect>
   </svg>
 
 
 
   <script>
-    const d = DragBoard
-      .on('#board', { svg: true })
-      .draggable('rect')
-      .onDragStart(e => console.log(e))
-      .onDragging(e => console.log(e))
-      .onDragEnd(e => console.log(e))
-      .onReady(e => console.log(e))
-      .onDestroy(e => console.log(e))
-      .render()
-      ;
 
-      window.setTimeout(() => {
-        document.getElementById('2').remove();
-      }, 500);
-      
-      window.setTimeout(() => {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg',"rect");
-        document.getElementById('board').appendChild(rect);
-      }, 1000);
     // const boards = [{
     //   type: 'container',
+    //   tag: 'svg',
     //   id: 'board',
     //   children: [{
     //     type: 'dragElement',
     //     tag: 'rect',
-    //     id: ++rectId,
+    //     id: '',
+    //     coord: {
+    //       x: 0,
+    //       y: 0,
+    //     },
     //   }],
     // }];
+
+
+    SVGWritable
+        .svg('#board')
+        .writable(document.getElementById('1'), 'test', 1)
+        ;
+
+    const d = DragBoard
+      .on('#board', { svg: true, withSibling: true, grouping: true })
+      .draggable('rect')
+      // .onDragStart(e => console.log(e))
+      // .onDragging(e => console.log(e))
+      // .onDragEnd(e => console.log(e))
+      // .onReady(e => console.log(e))
+      // .onDestroy(e => console.log(e))
+      .render()
+      ;
+
+
+      // window.setTimeout(() => {
+      //   document.getElementById('2').remove();
+      // }, 500);
+      
+      // window.setTimeout(() => {
+      //   const rect = document.createElementNS('http://www.w3.org/2000/svg',"rect");
+      //   document.getElementById('board').appendChild(rect);
+      // }, 1000);
 
     // FlowBoard.render('body', boards);
 
