@@ -28,7 +28,8 @@
     (function SVGWritablePrototype() {
 
       this.init = function() {
-        this.textWriter = this.createTextwriter();
+        this.$svg.classList.add('svg-writable-container');
+        this.$textWriter = this.createTextwriter();
       }
 
       this.toWriter = function($el, name, value) {
@@ -45,30 +46,40 @@
           return;
         }
         this.store.put(name, new TextView(this.$textWriter, $el, name, value));
+
         return this.returnObject;
       }
 
       this.createTextwriter = function() {
         const textarea = document.createElement('textarea');
         textarea.style.position = 'absolute';
-        // textarea.style.top = '-5px';
-        // textarea.style.left = '-5px';
-        // textarea.style.width = 0;
-        // textarea.style.height = 0;
-        // textarea.style.opacity = 0;
-        textarea.style.top = '5px';
-        textarea.style.left = '5px';
+        textarea.style.top = '-5px';
+        textarea.style.left = '-5px';
+        textarea.style.width = 0;
+        textarea.style.height = 0;
+        textarea.style.opacity = 0;
 
         this.$svg.insertAdjacentElement('beforebegin', textarea);
 
         return textarea;
       }
 
+      this.destroy = function() {
+        this.store.destroy();
+        this.store = null;
+        this.$textWriter.remove();
+        this.$textWriter = null;
+        this.$svg = null;
+        this.returnObject = null;
+      }
+
       this.createReturnObject = function() {
         return {
           writable: this.toWriter.bind(this),
+          destroy: this.destroy.bind(this),
         };
       }
+
     }).call(SVGWritable.prototype);
 
     return {
@@ -89,6 +100,8 @@
     function TextView($textWriter, $el, name, value) {
       this.$textWriter = $textWriter;
       this.$target = $el;
+      this.name = name;
+      this.value = value;
       this.$group = null;
       this.view = {
         $wrap: null,
@@ -96,9 +109,19 @@
       };
 
       this.init();
+
+      return this.createReturnObject();
     }
 
     (function TextViewPrototype() {
+
+      this.getName = function() {
+        return this.name;
+      }
+
+      this.getValue = function() {
+        return this.value;
+      }
 
       this.init = function() {
         this.$group = this.wrapToGroup();
@@ -137,12 +160,17 @@
         view.style.width = 'auto';
         view.style.height = 'auto';
         view.style.margin = 0;
+        view.classList.add('text-view');
+        view.innerText = this.value;
+        view.addEventListener('select', e => {
+          console.log(e);
+        });
+
+        this.bindTypingEventListener(viewWrap, view);
 
         viewWrap.appendChild(view);
         fo.appendChild(viewWrap);
-        this.$group.insertAdjacentElement('afterbegin', fo);
-
-        this.bindEventListener(viewWrap, view);
+        this.$group.insertAdjacentElement('beforeend', fo);
 
         return {
           $wrap: fo,
@@ -150,25 +178,45 @@
         };
       }
 
-      this.bindEventListener = function($viewWrap, $view) {
-        const writeTextEventListener = e => $view.innerText = e.target.value;
+      this.bindTypingEventListener = function($viewWrap, $view) {
+        const writeTextEventListener = e => {
+          $view.innerText = this.value = e.target.value;
+        };
         const writeFinishEventListener = () => {
+          $view.classList.remove('typing');
+          this.$textWriter.value = '';
           this.$textWriter.removeEventListener('input', writeTextEventListener);
           this.$textWriter.removeEventListener('blur', writeFinishEventListener);
         }
 
-        $viewWrap.addEventListener('dblclick', () => {
+        $viewWrap.addEventListener('dblclick', (e) => {
+          $view.classList.add('typing');
           this.$textWriter.focus();
           this.$textWriter.addEventListener('input', writeTextEventListener);
           this.$textWriter.addEventListener('blur', writeFinishEventListener);
+          this.$textWriter.value = this.value = $view.innerText;
         });
       }
 
+      this.destroy = function() {
+        this.view.$el.remove();
+        this.view.$wrap.remove();
+        this.view = null;
+        this.$group.remove();
+        this.$group = null;
+        this.$textWriter = null;
+        this.$target = null;
+        this.name = null;
+        this.value = null;
+      }
 
-      // this.writerAutoGrowEventListener = function(e) {
-      //   console.dir(e.target, e.target);
-      //   e.target.style.height = `${e.target.scrollHeight - 4}px`;
-      // }
+      this.createReturnObject = function() {
+        return {
+          destroy: this.destroy.bind(this),
+          name: this.getName.bind(this),
+          value: this.getValue.bind(this),
+        };
+      }
 
     }).call(TextView.prototype);
 
@@ -186,7 +234,7 @@
       this.map = Object.create(null);
       this.length = 0;
 
-      return this.returnObject();
+      return this.createReturnObject();
     }
 
 
@@ -332,7 +380,7 @@
         return array;
       }
 
-      this.returnObject = function() {
+      this.createReturnObject = function() {
         return {
           get: this.get.bind(this),
           put: this.put.bind(this),

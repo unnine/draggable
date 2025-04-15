@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 
-  <link href="./DragBoard.css" rel="stylesheet" />
+  <link href="./module/DragBoard.css" rel="stylesheet" />
+  <link href="./module/SVGWritable.css" rel="stylesheet" />
 
   <script src="./module/DragBoard.js"></script>
   <script src="./module/SVGWritable.js"></script>
@@ -42,8 +43,8 @@
  
   
   <svg id="board">
-    <rect id="1"></rect>
-    <rect id="2"></rect>
+    <rect id="1" title="request"></rect>
+    <rect id="2" title="receipt"></rect>
   </svg>
 
 
@@ -66,11 +67,6 @@
     // }];
 
 
-    SVGWritable
-        .svg('#board')
-        .writable(document.getElementById('1'), 'test', 1)
-        ;
-
     const d = DragBoard
       .on('#board', { svg: true, withSibling: true, grouping: true })
       .draggable('rect')
@@ -81,6 +77,16 @@
       // .onDestroy(e => console.log(e))
       .render()
       ;
+
+      const svgWritable = SVGWritable.svg('#board');
+      console.log(svgWritable);
+
+      const rects = document.querySelectorAll('rect');
+      console.log(rects);
+
+      rects.forEach(rect => {
+        svgWritable.writable(rect, rect.getAttribute('title'), '23432');
+      });
 
 
       // window.setTimeout(() => {

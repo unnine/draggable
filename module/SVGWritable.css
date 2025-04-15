@@ -1,0 +1,17 @@
+.svg-writable-container .text-view::selection {
+  /* background-color: transparent; */
+}
+
+.svg-writable-container .text-view.typing::after {
+  content: "|";
+  position: relative;
+  top: -1px;
+  left: -3px;
+  animation: typing-blink  1s step-end infinite;
+}
+
+@keyframes typing-blink {
+  50% {
+    opacity: 0;
+  }
+}

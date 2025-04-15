@@ -125,7 +125,7 @@
 
       this.getSelectedItem = function($selectedElement) {
         for (let item of this.draggable.items) {
-          if (item.equals($selectedElement)) {
+          if (item.containsGroup($selectedElement)) {
             return item;
           }
         }
@@ -134,6 +134,9 @@
 
       this.dragStartListener = function(e) {
         const dragItem = this.getSelectedItem(e.target);
+        if (dragItem == null) {
+          return;
+        }
         this.startDrag(dragItem, this.getClientCoord(e));
         this.callHook(this.EVENT.DRAG.START, {
           originEvent: e,
@@ -153,6 +156,9 @@
       }
 
       this.dragEndListener = function(e) {
+        if (!this.isDragging()) {
+          return;
+        }
         this.callHook(this.EVENT.DRAG.END, {
           originEvent: e,
           target: this.currentDraggingElement(),
@@ -161,9 +167,6 @@
       }
 
       this.startDrag = function(dragItem, clientCoord) {
-        if (dragItem == null) {
-          return;
-        }
         this.state.drag.active = true;
         this.state.drag.el = dragItem;
         this.state.drag.el.start(clientCoord); 
@@ -174,9 +177,6 @@
       }
 
       this.endDrag = function() {
-        if (!this.isDragging()) {
-          return;
-        }
         this.state.drag.el.end();
         this.state.drag.active = false;
         this.state.drag.el = null;
@@ -251,7 +251,7 @@
       }
 
       this.findDraggableItem = function($el) {
-        return this.draggable.items.find(item => item.equals($el));
+        return this.draggable.items.find(item => item.containsGroup($el));
       }
 
       this.refreshSiblingElements = function($el) {
@@ -275,7 +275,7 @@
           return;
         }
         const elementIndex = this.draggable.$elements.findIndex($element => $element == $el);
-        const itemIndex = this.draggable.items.findIndex(item => item.equals($el));
+        const itemIndex = this.draggable.items.findIndex(item => item.containsGroup($el));
 
         if (elementIndex !== -1 && itemIndex !== -1) {
           this.draggable.$elements.splice(elementIndex, 1);
@@ -312,7 +312,6 @@
         for (let item of this.draggable.items) {
           item.destroy();
         }
-        this.$board.remove();
       }
 
       this.createReturnObject = function() {
@@ -365,6 +364,8 @@
       this.offsetY = 0;
 
       this.init($el);
+
+      return this.createReturnObject();
     }
 
     (function DragPrototype() {
@@ -372,6 +373,8 @@
       this.init = function($el) {
         if (this.option.grouping) {
           this.$group = this.wrapToGroup($el);
+        } else {
+          this.$group = $el;
         }
 
         this.self = this.toDragItem($el);
@@ -396,6 +399,10 @@
         $el.parentElement.insertBefore(g, $el);
         g.appendChild($el);
         return g;
+      }
+
+      this.containsGroup = function($el) {
+        return this.$group.contains($el);
       }
 
       this.refreshSiblingElements = function() {
@@ -507,10 +514,6 @@
         dragItem.$target.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;
       }
 
-      this.equals = function($el) {
-        return this.self.$target == $el;
-      }
-
       this.destroy = function() {
         this.removeElements();
         this.siblingItems = null;
@@ -537,6 +540,17 @@
         if (this.$group != null) {
           this.$group.remove();
         }
+      }
+
+      this.createReturnObject = function() {
+        return {
+          start: this.start.bind(this),
+          move: this.move.bind(this),
+          end: this.end.bind(this),
+          containsGroup: this.containsGroup.bind(this),
+          refreshSiblingElements: this.refreshSiblingElements.bind(this),
+          destroy: this.destroy.bind(this),
+        };
       }
 
     }).call(Drag.prototype);
