@@ -1,0 +1,27 @@
+.svg-connector-container .svg-connectable {
+  position: relative;
+}
+
+.svg-connector-container .svg-connectable ~ .svg-connector-container .connectable-icon {
+  opacity: 1;
+}
+
+.svg-connector-container .svg-connectable:hover ~ .svg-connector-container .connectable-icon {
+  opacity: 0.4;
+}
+
+.svg-connector-container .svg-connectable ~ .svg-connector-container .connectable-icon:hover {
+  opacity: 0.8;
+}
+
+.svg-connector-container .svg-connectable:hover ~ .svg-connector-container .connectable-icon:active {
+  opacity: 1;
+}
+
+.svg-connector-container .svg-connectable ~ .svg-connector-container .connectable-icon.connecting {
+  opacity: 1;
+}
+
+.svg-connector-container .svg-connectable ~ .svg-connector-container .connected {
+  opacity: 1;
+}

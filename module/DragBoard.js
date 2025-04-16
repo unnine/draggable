@@ -48,6 +48,10 @@
           END: 'dragEnd',
           ING: 'dragging',
         },
+        MOUSE: {
+          ENTER: 'mouseenter',
+          LEAVE: 'mouseleave',
+        },
       };
 
       this.registerHook = function(eventType, hook) {
@@ -62,7 +66,8 @@
       }
 
       this.init = function() {
-        this.bindEventListeners();
+        this.initAllEventListener();
+        this.bindBoardEventListeners();
         this.startDetectMutation();
         this.callHook(this.EVENT.LIFE_CYCLE.READY, {
           container: this.$board,
@@ -95,13 +100,16 @@
         });
       };
 
-      this.bindEventListeners = function() {
-        this.eventListeners = {
-          [this.EVENT.DRAG.START]: this.dragStartListener.bind(this),
-          [this.EVENT.DRAG.ING]: this.draggingListener.bind(this),
-          [this.EVENT.DRAG.END]: this.dragEndListener.bind(this),
-        };
+      this.initAllEventListener = function() {
+        this.eventListeners[this.EVENT.DRAG.START] = this.dragStartListener.bind(this);
+        this.eventListeners[this.EVENT.DRAG.ING] = this.draggingListener.bind(this);
+        this.eventListeners[this.EVENT.DRAG.END] = this.dragEndListener.bind(this);   
+        
+        this.eventListeners[this.EVENT.MOUSE.ENTER] = this.mouseEnterListener.bind(this);
+        this.eventListeners[this.EVENT.MOUSE.LEAVE] = this.mouseLeaveListener.bind(this);
+      }
 
+      this.bindBoardEventListeners = function() {
         this.$board.addEventListener("touchstart", this.eventListeners[this.EVENT.DRAG.START], { passive: true });
         this.$board.addEventListener("touchmove", this.eventListeners[this.EVENT.DRAG.ING], { passive: true });
         this.$board.addEventListener("touchend", this.eventListeners[this.EVENT.DRAG.END], { passive: true });
@@ -113,7 +121,7 @@
         return this.returnObject;
       }
 
-      this.releaseEventListeners = function() {
+      this.releaseBoardEventListeners = function() {
         this.$board.removeEventListener("touchstart", this.eventListeners[this.EVENT.DRAG.START]);
         this.$board.removeEventListener("touchmove", this.eventListeners[this.EVENT.DRAG.ING]);
         this.$board.removeEventListener("touchend", this.eventListeners[this.EVENT.DRAG.END]);
@@ -130,40 +138,6 @@
           }
         }
         return null;
-      }
-
-      this.dragStartListener = function(e) {
-        const dragItem = this.getSelectedItem(e.target);
-        if (dragItem == null) {
-          return;
-        }
-        this.startDrag(dragItem, this.getClientCoord(e));
-        this.callHook(this.EVENT.DRAG.START, {
-          originEvent: e,
-          target: dragItem,
-        });
-      }
-
-      this.draggingListener = function(e) {
-        if (!this.isDragging()) {
-          return;
-        }
-        this.moveDrag(this.getClientCoord(e));
-        this.callHook(this.EVENT.DRAG.ING, {
-          originEvent: e,
-          target: this.currentDraggingElement(),
-        });
-      }
-
-      this.dragEndListener = function(e) {
-        if (!this.isDragging()) {
-          return;
-        }
-        this.callHook(this.EVENT.DRAG.END, {
-          originEvent: e,
-          target: this.currentDraggingElement(),
-        });
-        this.endDrag();
       }
 
       this.startDrag = function(dragItem, clientCoord) {
@@ -206,7 +180,7 @@
         return e.type.startsWith('touch');
       }
 
-      this.draggableItems = function(selector) {
+      this.toDraggableItems = function(selector) {
         const $els = this.$board.querySelectorAll(selector);
         if ($els.length <= 0) {
           return;
@@ -221,7 +195,7 @@
         return this.returnObject;
       }
 
-      this.undraggableItems = function(selector) {
+      this.toUndraggableItems = function(selector) {
         const $els = this.$board.querySelectorAll(selector);
         if ($els.length <= 0) {
           return;
@@ -268,6 +242,8 @@
         }
         this.draggable.$elements.push($el);
         this.draggable.items.push(new Drag($el, this.option));
+        $el.addEventListener('mouseenter', this.eventListeners[this.EVENT.MOUSE.ENTER]);
+        $el.addEventListener('mouseleave', this.eventListeners[this.EVENT.MOUSE.LEAVE]);
       }
 
       this.toUndraggable = function($el) {
@@ -283,6 +259,61 @@
         }
       }
 
+      this.dragStartListener = function(e) {
+        const dragItem = this.getSelectedItem(e.target);
+        if (dragItem == null) {
+          return;
+        }
+        this.startDrag(dragItem, this.getClientCoord(e));
+        this.callHook(this.EVENT.DRAG.START, {
+          originEvent: e,
+          target: dragItem,
+        });
+      }
+
+      this.draggingListener = function(e) {
+        if (!this.isDragging()) {
+          return;
+        }
+        this.moveDrag(this.getClientCoord(e));
+        this.callHook(this.EVENT.DRAG.ING, {
+          originEvent: e,
+          target: this.currentDraggingElement(),
+        });
+      }
+
+      this.dragEndListener = function(e) {
+        if (!this.isDragging()) {
+          return;
+        }
+        this.callHook(this.EVENT.DRAG.END, {
+          originEvent: e,
+          target: this.currentDraggingElement(),
+        });
+        this.endDrag();
+      }
+
+      this.mouseEnterListener = function(e) {
+        console.log(e);
+        if (!this.isDraggableMatches(e.target)) {
+          return;
+        }
+        this.callHook(this.EVENT.MOUSE.ENTER, {
+          originEvent: e,
+          target: null,
+        });
+      }
+
+      this.mouseLeaveListener = function(e) {
+        if (!this.isDraggableMatches(e.target)) {
+          return;
+        }
+        this.callHook(this.EVENT.MOUSE.ENTER, {
+          originEvent: e,
+          target: null,
+        });
+      }
+
       this.render = function() {
         if (!this.initialized) {
           this.init();
@@ -292,7 +323,7 @@
 
       this.destroy = function() {
         this.removeElements();
-        this.releaseEventListeners();
+        this.releaseBoardEventListeners();
         this.callHook(this.EVENT.LIFE_CYCLE.DESTROY, {
           container: this.$board,
           draggable: this.draggable.$elements,
@@ -309,9 +340,11 @@
       }
 
       this.removeElements = function() {
-        for (let item of this.draggable.items) {
-          item.destroy();
-        }
+        this.draggable.$elements.forEach($el => {
+          $el.removeEventListener('mouseenter', this.eventListeners[this.EVENT.MOUSE.ENTER]);
+          $el.removeEventListener('mouseleave', this.eventListeners[this.EVENT.MOUSE.LEAVE]);
+        });
+        this.draggable.items.forEach(item => item.destroy());
       }
 
       this.createReturnObject = function() {
@@ -322,9 +355,11 @@
           onDragStart: this.registerHook.bind(this, this.EVENT.DRAG.START),
           onDragging: this.registerHook.bind(this, this.EVENT.DRAG.ING),
           onDragEnd: this.registerHook.bind(this, this.EVENT.DRAG.END),
+          onMouseEnter: this.registerHook.bind(this, this.EVENT.MOUSE.ENTER),
+          onMouseLeave: this.registerHook.bind(this, this.EVENT.MOUSE.LEAVE),
           render: this.render.bind(this),
-          draggable: this.draggableItems.bind(this),
-          undraggable: this.undraggableItems.bind(this),
+          draggable: this.toDraggableItems.bind(this),
+          undraggable: this.toUndraggableItems.bind(this),
         };
       }
     }).call(DragBoard.prototype);
@@ -542,6 +577,10 @@
         }
       }
 
+      this.getSelfElement = function() {
+        return this.self.$target;
+      }
+
       this.createReturnObject = function() {
         return {
           start: this.start.bind(this),
@@ -550,6 +589,7 @@
           containsGroup: this.containsGroup.bind(this),
           refreshSiblingElements: this.refreshSiblingElements.bind(this),
           destroy: this.destroy.bind(this),
+          getSelf: this.getSelfElement.bind(this),
         };
       }
 
