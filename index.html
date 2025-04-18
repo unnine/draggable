@@ -74,19 +74,17 @@
       .on('#board', { svg: true, withSibling: true, grouping: true })
       .draggable('rect')
       .onDragStart(e => {
-        cc.toConnectable(e.target.getSelf());
       })
       .onDragging(e => {
         cc.refresh(e.target.getSelf());
       })
       .onDragEnd(e => {
-        cc.toUnconnectable(e.target.getSelf());
       })
       .onMouseEnter(e => {
-        console.log('enter', e);
+        cc.toConnectable(e.target);
       })
       .onMouseLeave(e => {
-        console.log('leave', e);
+        cc.toUnconnectable(e.target);
       })
       // .onReady(e => console.log(e))
       // .onDestroy(e => console.log(e))

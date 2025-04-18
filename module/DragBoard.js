@@ -59,6 +59,12 @@
         return this.returnObject;
       }
 
+      this.registerDragItemHook = function(eventType, hook) {
+        
+        this.hooks[eventType] = hook;
+        return this.returnObject;
+      }
+
       this.callHook = function(eventType, event = {}) {
         if (this.hooks[eventType]) {
           this.hooks[eventType]({ type: eventType, ...event });
@@ -104,9 +110,6 @@
         this.eventListeners[this.EVENT.DRAG.START] = this.dragStartListener.bind(this);
         this.eventListeners[this.EVENT.DRAG.ING] = this.draggingListener.bind(this);
         this.eventListeners[this.EVENT.DRAG.END] = this.dragEndListener.bind(this);   
-        
-        this.eventListeners[this.EVENT.MOUSE.ENTER] = this.mouseEnterListener.bind(this);
-        this.eventListeners[this.EVENT.MOUSE.LEAVE] = this.mouseLeaveListener.bind(this);
       }
 
       this.bindBoardEventListeners = function() {
@@ -230,10 +233,24 @@
         if (!this.isDraggableMatches($el) || this.draggable.$elements.includes($el)) {
           return;
         }
+        const dragItem = new Drag($el, this.option);
+
+        dragItem.registerMouseEnterHook(function enterHandler(e) {
+          this.callHook(this.EVENT.MOUSE.ENTER, {
+            originEvent: e,
+            target: e.target,
+          });
+        }.bind(this));
+
+        dragItem.registerMouseLeaveHook(function leaveHandler(e) {
+          this.callHook(this.EVENT.MOUSE.LEAVE, {
+            originEvent: e,
+            target: e.target,
+          });
+        }.bind(this));
+
         this.draggable.$elements.push($el);
-        this.draggable.items.push(new Drag($el, this.option));
-        $el.addEventListener('mouseenter', this.eventListeners[this.EVENT.MOUSE.ENTER]);
-        $el.addEventListener('mouseleave', this.eventListeners[this.EVENT.MOUSE.LEAVE]);
+        this.draggable.items.push(dragItem);
       }
 
       this.toUndraggable = function($el) {
@@ -283,27 +300,6 @@
         this.endDrag();
       }
 
-      this.mouseEnterListener = function(e) {
-        console.log(e);
-        if (!this.isDraggableMatches(e.target)) {
-          return;
-        }
-        this.callHook(this.EVENT.MOUSE.ENTER, {
-          originEvent: e,
-          target: null,
-        });
-      }
-
-      this.mouseLeaveListener = function(e) {
-        if (!this.isDraggableMatches(e.target)) {
-          return;
-        }
-        this.callHook(this.EVENT.MOUSE.ENTER, {
-          originEvent: e,
-          target: null,
-        });
-      }
-
       this.render = function() {
         if (!this.initialized) {
           this.init();
@@ -350,8 +346,8 @@
           onDragStart: this.registerHook.bind(this, this.EVENT.DRAG.START),
           onDragging: this.registerHook.bind(this, this.EVENT.DRAG.ING),
           onDragEnd: this.registerHook.bind(this, this.EVENT.DRAG.END),
-          onMouseEnter: this.registerHook.bind(this, this.EVENT.MOUSE.ENTER),
-          onMouseLeave: this.registerHook.bind(this, this.EVENT.MOUSE.LEAVE),
+          onMouseEnter: this.registerDragItemHook.bind(this, this.EVENT.MOUSE.ENTER),
+          onMouseLeave: this.registerDragItemHook.bind(this, this.EVENT.MOUSE.LEAVE),
           render: this.render.bind(this),
           draggable: this.toDraggableItems.bind(this),
           undraggable: this.toUndraggableItems.bind(this),
@@ -393,12 +389,26 @@
       this.offsetX = 0;
       this.offsetY = 0;
 
+      this.eventListeners = {};
+      this.hooks = {};
+
       this.init($el);
 
       return this.createReturnObject();
     }
 
     (function DragPrototype() {
+
+      this.EVENT = {
+        MOUSE: {
+          ENTER: 'mouseenter',
+          LEAVE: 'mouseleave',
+        },
+      };
+
+      this.registerHook = function(eventType, hook) {
+        this.hooks[eventType] = hook;
+      }
 
       this.init = function($el) {
         if (this.option.grouping) {
@@ -417,6 +427,8 @@
         this.currentX = x;
         this.currentY = y;
 
+        this.initAllEventListener();
+        this.bindHoverEventListener($el);
         this.setSiblingElements($el);
       }
 
@@ -450,6 +462,7 @@
 
         this.siblingItems.push(...prevSiblings);
         this.siblingItems.push(...nextSiblings);
+        this.siblingItems.forEach(item => this.bindHoverEventListener(item.$target));
       }
 
       this.getPrevSiblingAll = function($el) {
@@ -494,10 +507,7 @@
         this.offsetY = this.currentY;
 
         this.changeCoord(this.self);
-
-        for (let siblingItem of this.siblingItems) {
-          this.changeCoord(siblingItem);
-        }
+        this.changeCoordSiblings();
       }
 
       this.end = function() {
@@ -531,8 +541,10 @@
         this.changeCoordStyle(dragItem);
       }
 
-      this.isSvg = function(dragItem) {
-        return dragItem.$target.tagName === 'svg';
+      this.changeCoordSiblings = function() {
+        for (let siblingItem of this.siblingItems) {
+          this.changeCoord(siblingItem);
+        }
       }
 
       this.changeCoordSvg = function(dragItem) {
@@ -544,9 +556,43 @@
         dragItem.$target.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;
       }
 
+      this.isSvg = function(dragItem) {
+        return dragItem.$target.tagName === 'svg';
+      }
+
+      this.initAllEventListener = function() {
+        this.eventListeners[this.EVENT.MOUSE.ENTER] = this.mouseEnterListener.bind(this);
+        this.eventListeners[this.EVENT.MOUSE.LEAVE] = this.mouseLeaveListener.bind(this);
+      }
+
+      this.bindHoverEventListener = function($el) {
+        $el.addEventListener('mouseenter', this.eventListeners[this.EVENT.MOUSE.ENTER]);
+        $el.addEventListener('mouseleave', this.eventListeners[this.EVENT.MOUSE.LEAVE]);
+      }
+
+      this.releaseHoverEventListener = function($el) {
+        $el.removeEventListener('mouseenter', this.eventListeners[this.EVENT.MOUSE.ENTER]);
+        $el.removeEventListener('mouseleave', this.eventListeners[this.EVENT.MOUSE.LEAVE]);
+      }
+
+      this.mouseEnterListener = function(e) {
+        if (this.hooks.mouseenter) {
+          this.hooks.mouseenter({ originEvent: e, target: e.target });
+        }
+      }
+
+      this.mouseLeaveListener = function(e) {
+        if (this.hooks.mouseleave) {
+          this.hooks.mouseleave({ originEvent: e, target: e.target });
+        }
+      }
+
       this.destroy = function() {
         this.removeElements();
         this.siblingItems = null;
+        this.eventListeners = null;
+        this.hooks = null;
+        this.eventListeners = null;
         this.offsetX = null;
         this.offsetY = null;
         this.currentX = null;
@@ -563,9 +609,12 @@
       this.removeElements = function() {
         if (this.siblingItems.length > 0) {
           for (let item of this.siblingItems) {
+            this.releaseHoverEventListener(this.$target);
             item.$target.remove();  
           }
         }
+
+        this.releaseHoverEventListener(this.self.$target);
 
         if (this.$group != null) {
           this.$group.remove();
@@ -585,6 +634,8 @@
           refreshSiblingElements: this.refreshSiblingElements.bind(this),
           destroy: this.destroy.bind(this),
           getSelf: this.getSelfElement.bind(this),
+          registerMouseEnterHook: this.registerHook.bind(this, this.EVENT.MOUSE.ENTER),
+          registerMouseLeaveHook: this.registerHook.bind(this, this.EVENT.MOUSE.LEAVE),
         };
       }
 
