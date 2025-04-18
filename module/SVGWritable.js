@@ -11,13 +11,12 @@
   else {
     window['SVGWritable'] = factory;
   }
-}((function SVGWritableFactory(TextView, __DoublyLinkedMapFactory) {
+}((function SVGWritableFactory(TextView) {
     'use strict'
 
     function SVGWritable($el) {
       this.$svg = $el;
-      this.$textWriter = null;
-      this.store = __DoublyLinkedMapFactory.create();
+      this.store = {};
 
       this.init();
 
@@ -29,7 +28,6 @@
 
       this.init = function() {
         this.$svg.classList.add('svg-writable-container');
-        this.$textWriter = this.createTextwriter();
       }
 
       this.toWriter = function($el, name, value) {
@@ -45,30 +43,13 @@
           console.error(`name attribute is required.`);
           return;
         }
-        this.store.put(name, new TextView(this.$textWriter, $el, name, value));
+        this.store[name] = new TextView($el, name, value);
 
         return this.returnObject;
       }
 
-      this.createTextwriter = function() {
-        const textarea = document.createElement('textarea');
-        textarea.style.position = 'absolute';
-        textarea.style.top = '-5px';
-        textarea.style.left = '-5px';
-        textarea.style.width = 0;
-        textarea.style.height = 0;
-        textarea.style.opacity = 0;
-
-        this.$svg.insertAdjacentElement('beforebegin', textarea);
-
-        return textarea;
-      }
-
       this.destroy = function() {
-        this.store.destroy();
         this.store = null;
-        this.$textWriter.remove();
-        this.$textWriter = null;
         this.$svg = null;
         this.returnObject = null;
       }
@@ -97,18 +78,18 @@
   (function TextViewFactory() {
     'use strict'
 
-    function TextView($textWriter, $el, name, value) {
-      this.$textWriter = $textWriter;
-      this.$target = $el;
-      this.name = name;
-      this.value = value;
+    function TextView($el, name, value) {
+      this.$target = null;
+      this.name = null;
+      this.value = null;
       this.$group = null;
       this.view = {
+        $fo: null,
         $wrap: null,
         $el: null,
       };
 
-      this.init();
+      this.init($el, name, value);
 
       return this.createReturnObject();
     }
@@ -123,7 +104,14 @@
         return this.value;
       }
 
-      this.init = function() {
+      this.init = function($el, name, value) {
+        if (name == null) {
+          throw new Error('name attribute is required.');
+        }
+
+        this.$target = $el;
+        this.name = name;
+        this.value = value; 
         this.$group = this.wrapToGroup();
         this.view = this.addTextView();
       }
@@ -144,67 +132,65 @@
         const { x, y, width, height } = this.$target.getBoundingClientRect();
 
         const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+        fo.style.overflow = 'visible';
         fo.setAttribute('x', x);
         fo.setAttribute('y', y);
         fo.setAttribute('width', width);
         fo.setAttribute('height', height);
 
         const viewWrap = document.createElement('div');
+        viewWrap.classList.add('text-view-wrap');
         viewWrap.style.width = `${width}px`;
         viewWrap.style.height = `${height}px`;
-        viewWrap.style.display = 'flex';
-        viewWrap.style.justifyContent = 'center';
-        viewWrap.style.alignItems = 'center';
 
         const view = document.createElement('pre');
-        view.style.width = 'auto';
-        view.style.height = 'auto';
-        view.style.margin = 0;
         view.classList.add('text-view');
+        view.contentEditable = 'true';
         view.innerText = this.value;
-
-        this.bindTypingEventListener(viewWrap, view);
+        view.addEventListener('keydown', this.onInputValue);
+        view.addEventListener('blur', this.onBlurInput);
 
         viewWrap.appendChild(view);
         fo.appendChild(viewWrap);
         this.$group.insertAdjacentElement('beforeend', fo);
 
         return {
-          $wrap: fo,
-          $el: viewWrap,
+          $fo: fo,
+          $wrap: viewWrap,
+          $el: view,
         };
       }
 
-      this.bindTypingEventListener = function($viewWrap, $view) {
-        const writeTextEventListener = e => {
-          $view.innerText = this.value = e.target.value;
-        };
-        const writeFinishEventListener = () => {
-          $view.classList.remove('typing');
-          this.$textWriter.value = '';
-          this.$textWriter.removeEventListener('input', writeTextEventListener);
-          this.$textWriter.removeEventListener('blur', writeFinishEventListener);
+      this.onInputValue = function(e) {
+        if (e.key === 'Escape' || (e.key === 'Enter' && !e.shiftKey)) {
+          e.preventDefault();
+          e.target.blur();
         }
+      }
 
-        $viewWrap.addEventListener('dblclick', (e) => {
-          $view.classList.add('typing');
-          this.$textWriter.focus();
-          this.$textWriter.addEventListener('input', writeTextEventListener);
-          this.$textWriter.addEventListener('blur', writeFinishEventListener);
-          this.$textWriter.value = this.value = $view.innerText;
-        });
+      this.onBlurInput = function(e) {
+        this.value = e.target.innerText;
       }
 
       this.destroy = function() {
-        this.view.$el.remove();
-        this.view.$wrap.remove();
+        this.removeViewElements();
         this.view = null;
         this.$group.remove();
         this.$group = null;
-        this.$textWriter = null;
         this.$target = null;
         this.name = null;
         this.value = null;
+      }
+
+      this.removeViewElements = function() {
+        this.view.$el.removeEventListener('keydown', this.onInputValue);
+        this.view.$el.removeEventListener('blur', this.onBlurInput);
+        this.view.$fo.remove();
+        this.view.$wrap.remove();
+        this.view.$el.remove();
+        this.view.$fo = null;
+        this.view.$wrap = null;
+        this.view.$el = null;
       }
 
       this.createReturnObject = function() {
@@ -218,187 +204,6 @@
     }).call(TextView.prototype);
 
     return TextView;
-  }()),
-
-  
-  (function DoublyLinkedMapFactory() {
-    'use strict'
-
-
-    function DoublyLinkedMap() {
-      this.head = null;
-      this.tail = null;
-      this.map = Object.create(null);
-      this.length = 0;
-
-      return this.createReturnObject();
-    }
-
-
-    (function DoublyLinkedMapPrototype() {
-      this.put = function (k, v) {
-        const node = {
-          key: k,
-          value: v,
-          prev: this.tail,
-          next: null,
-        };
-
-        this.map[k] = node;
-
-        if (this.length === 0) {
-          this.head = node;
-        }
-
-        if (this.tail) {
-          this.tail.next = node;
-        }
-
-        this.tail = node;
-        this.length += 1;
-      }
-
-      this.remove = function (k) {
-        const node = this.getNode(k);
-
-        if (!node) {
-          return;
-        }
-
-        if (this.isHead(node.key)) {
-          if (node.next) {
-            node.next.prev = null;
-          }
-          this.head = node.next;
-        }
-
-        if (this.isTail(node.key)) {
-          if (node.prev) {
-            node.prev.next = null;
-          }
-          this.tail = node.prev;
-        }
-
-        if (node.next) {
-          node.next.prev = node.prev;
-        }
-
-        if (node.prev) {
-          node.prev.next = node.next;
-        }
-
-        delete this.map[k];
-        this.length -= 1;
-      }
-
-      this.clear = function () {
-        this.head = null;
-        this.tail = null;
-        this.map = Object.create(null);
-        this.length = 0;
-      }
-      
-      this.destroy = function() {
-        this.head = null;
-        this.tail = null;
-        this.map = null;
-        this.length = null;
-      }
-
-      this.size = function () {
-        return this.length;
-      }
-
-      this.get = function (k) {
-        return this.getNode(k)?.value;
-      }
-
-      this.getNode = function (k) {
-        return Object.prototype.hasOwnProperty.call(this.map, k) ? this.map[k] : null;
-      }
-
-      this.hasNext = function (k) {
-        return this.getNode(k).next != null;
-      }
-
-      this.isHead = function (k) {
-        return this.head === this.getNode(k);
-      }
-
-      this.isTail = function (k) {
-        return this.tail === this.getNode(k);
-      }
-
-      this.getNextKey = function (k) {
-        return this.hasNext(k) ? this.getNode(k).next.key : null;
-      }
-
-      this.contains = function (k) {
-        return Object.prototype.hasOwnProperty.call(this.map, k);
-      }
-
-      this.each = function (callBack = () => false) {
-        const
-          len = this.length;
-
-        let
-          i = 0,
-          param = null,
-          node = this.head;
-
-        while (i < len) {
-          param = {
-            key: node.key,
-            value: node.value,
-          };
-
-          if (callBack(param, i) === false) {
-            break;
-          }
-
-          node = node.next;
-          i++;
-        }
-      }
-
-      this.toArray = function () {
-        const array = [];
-        this.each(({ value }) => array.push(value));
-        return array;
-      }
-
-      this.filter = function (callBack = () => false) {
-        const array = [];
-        this.each((param, i) => {
-          if (callBack(param, i) === true) {
-            array.push(param);
-          }
-        });
-        return array;
-      }
-
-      this.createReturnObject = function() {
-        return {
-          get: this.get.bind(this),
-          put: this.put.bind(this),
-          remove: this.remove.bind(this),
-          clear: this.clear.bind(this),
-          destroy: this.destroy.bind(this),
-          each: this.each.bind(this),
-          toArray: this.toArray.bind(this),
-          filter: this.filter.bind(this),
-          size: this.size.bind(this),
-          contains: this.contains.bind(this),
-        };
-      }
-
-    }).call(DoublyLinkedMap.prototype);
-
-    return {
-      create() {
-        return new DoublyLinkedMap();
-      },
-    };
   }()),
 
 ))));

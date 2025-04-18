@@ -29,8 +29,8 @@
         $elements: [],
         items: [],
       };
-      this.hooks = {};
       this.mutationObserver = null;
+      this.hooks = {};
       this.eventListeners = {};
       this.returnObject = this.createReturnObject();
       return this.returnObject;
@@ -119,16 +119,6 @@
         this.$board.addEventListener('mouseup', this.eventListeners[this.EVENT.DRAG.END]);
 
         return this.returnObject;
-      }
-
-      this.releaseBoardEventListeners = function() {
-        this.$board.removeEventListener("touchstart", this.eventListeners[this.EVENT.DRAG.START]);
-        this.$board.removeEventListener("touchmove", this.eventListeners[this.EVENT.DRAG.ING]);
-        this.$board.removeEventListener("touchend", this.eventListeners[this.EVENT.DRAG.END]);
-
-        this.$board.removeEventListener("mousedown", this.eventListeners[this.EVENT.DRAG.START]);
-        this.$board.removeEventListener("mousemove", this.eventListeners[this.EVENT.DRAG.ING]);
-        this.$board.removeEventListener("mouseup", this.eventListeners[this.EVENT.DRAG.END]);
       }
 
       this.getSelectedItem = function($selectedElement) {
@@ -237,7 +227,7 @@
       }
 
       this.toDraggable = function($el) {
-        if (!this.isDraggableMatches($el)) {
+        if (!this.isDraggableMatches($el) || this.draggable.$elements.includes($el)) {
           return;
         }
         this.draggable.$elements.push($el);
@@ -322,17 +312,19 @@
       }
 
       this.destroy = function() {
-        this.removeElements();
-        this.releaseBoardEventListeners();
+        if (this.mutationObserver) {
+          this.mutationObserver.disconnect();
+        }
+        this.mutationObserver = null;
         this.callHook(this.EVENT.LIFE_CYCLE.DESTROY, {
           container: this.$board,
           draggable: this.draggable.$elements,
         });
+        this.removeElements();
         this.returnObject = null;
         this.eventListeners = null;
-        this.mutationObserver = null;
-        this.hooks = null;
         this.draggable = null;
+        this.hooks = null;
         this.state = null;
         this.$board = null;
         this.option = null;
@@ -341,8 +333,11 @@
 
       this.removeElements = function() {
         this.draggable.$elements.forEach($el => {
-          $el.removeEventListener('mouseenter', this.eventListeners[this.EVENT.MOUSE.ENTER]);
-          $el.removeEventListener('mouseleave', this.eventListeners[this.EVENT.MOUSE.LEAVE]);
+          Object.values(this.EVENT).forEach(eventType => {
+            if (this.eventListeners[eventType]) {
+              $el.removeEventListener(eventType, this.eventListeners[eventType]);
+            }
+          });
         });
         this.draggable.items.forEach(item => item.destroy());
       }
