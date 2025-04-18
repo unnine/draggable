@@ -274,7 +274,7 @@
         this.startDrag(dragItem, this.getClientCoord(e));
         this.callHook(this.EVENT.DRAG.START, {
           originEvent: e,
-          target: dragItem,
+          target: dragItem.$target,
         });
       }
 
@@ -285,7 +285,7 @@
         this.moveDrag(this.getClientCoord(e));
         this.callHook(this.EVENT.DRAG.ING, {
           originEvent: e,
-          target: this.currentDraggingElement(),
+          target: this.currentDraggingElement().$target,
         });
       }
 
@@ -295,7 +295,7 @@
         }
         this.callHook(this.EVENT.DRAG.END, {
           originEvent: e,
-          target: this.currentDraggingElement(),
+          target: this.currentDraggingElement().$target,
         });
         this.endDrag();
       }
@@ -577,13 +577,13 @@
 
       this.mouseEnterListener = function(e) {
         if (this.hooks.mouseenter) {
-          this.hooks.mouseenter({ originEvent: e, target: e.target });
+          this.hooks.mouseenter({ originEvent: e, target: this.self.$target });
         }
       }
 
       this.mouseLeaveListener = function(e) {
         if (this.hooks.mouseleave) {
-          this.hooks.mouseleave({ originEvent: e, target: e.target });
+          this.hooks.mouseleave({ originEvent: e, target: this.self.$target });
         }
       }
 
@@ -621,19 +621,15 @@
         }
       }
 
-      this.getSelfElement = function() {
-        return this.self.$target;
-      }
-
       this.createReturnObject = function() {
         return {
+          $target: this.self.$target,
           start: this.start.bind(this),
           move: this.move.bind(this),
           end: this.end.bind(this),
           containsGroup: this.containsGroup.bind(this),
           refreshSiblingElements: this.refreshSiblingElements.bind(this),
           destroy: this.destroy.bind(this),
-          getSelf: this.getSelfElement.bind(this),
           registerMouseEnterHook: this.registerHook.bind(this, this.EVENT.MOUSE.ENTER),
           registerMouseLeaveHook: this.registerHook.bind(this, this.EVENT.MOUSE.LEAVE),
         };

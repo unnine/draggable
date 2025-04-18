@@ -134,7 +134,7 @@
         const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
         fo.style.overflow = 'visible';
         fo.setAttribute('x', x);
-        fo.setAttribute('y', y);
+        fo.setAttribute('y', y + 5);
         fo.setAttribute('width', width);
         fo.setAttribute('height', height);
 

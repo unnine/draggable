@@ -34,8 +34,8 @@
         this.ports = [];
 
         this.portCorrection = {
-          minX: -5,
-          minY: -1,
+          minX: -4,
+          minY: 1,
           maxX: function(width) {
             return this.minX + width;
           },
@@ -76,9 +76,9 @@
         }
 
         this.createPortsContainer = function() {
-          const portsContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          const portsContainer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           portsContainer.classList.add('svg-connector-ports-container');
-          this.$board.insertAdjacentElement('afterbegin', portsContainer);
+          this.$board.insertAdjacentElement('beforeend', portsContainer);
           this.$portsContainer = portsContainer;
         }
 
@@ -93,16 +93,16 @@
 
         this.createPort = function() {
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          svg.classList.add('connectable-icon');
-          svg.setAttribute('width', '11');
-          svg.setAttribute('height', '11');
+          svg.classList.add('connectable-port');
+          svg.setAttribute('width', '10');
+          svg.setAttribute('height', '10');
           svg.setAttribute('viewBox', '0 0 512 512');
-          svg.setAttribute('x', -11);
-          svg.setAttribute('y', -11);
+          svg.setAttribute('x', -10);
+          svg.setAttribute('y', -10);
   
           const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
           const linearGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-          linearGradient.setAttribute('id', 'grad1');
+          linearGradient.setAttribute('id', 'svg-connector-port-color');
           linearGradient.setAttribute('x1', '0');
           linearGradient.setAttribute('x2', '0');
           linearGradient.setAttribute('y1', '0');
@@ -123,10 +123,10 @@
           svg.appendChild(defs);
   
           const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          circle.setAttribute('cx', '256');
-          circle.setAttribute('cy', '256');
-          circle.setAttribute('r', '256');
-          circle.setAttribute('fill', 'url(#grad1)');
+          circle.setAttribute('cx', '200');
+          circle.setAttribute('cy', '200');
+          circle.setAttribute('r', '200');
+          circle.setAttribute('fill', 'url(#svg-connector-port-color)');
   
           svg.appendChild(circle);
   

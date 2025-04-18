@@ -2,26 +2,22 @@
   position: relative;
 }
 
-.svg-connector-container .svg-connectable ~ .svg-connector-container .connectable-icon {
-  opacity: 1;
-}
-
-.svg-connector-container .svg-connectable:hover ~ .svg-connector-container .connectable-icon {
+.svg-connector-container .connectable-port {
   opacity: 0.4;
 }
 
-.svg-connector-container .svg-connectable ~ .svg-connector-container .connectable-icon:hover {
+.svg-connector-container .connectable-port:hover {
   opacity: 0.8;
 }
 
-.svg-connector-container .svg-connectable:hover ~ .svg-connector-container .connectable-icon:active {
+.svg-connector-container .connectable-port:active {
   opacity: 1;
 }
 
-.svg-connector-container .svg-connectable ~ .svg-connector-container .connectable-icon.connecting {
+/* .svg-connector-container .connectable-port.connecting {
   opacity: 1;
-}
+} */
 
-.svg-connector-container .svg-connectable ~ .svg-connector-container .connected {
+/* .svg-connector-container .connected {
   opacity: 1;
-}
+} */
